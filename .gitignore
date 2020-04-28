@@ -1,0 +1,25 @@
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/storage/scriptfile/*
+/vendor
+/.idea
+/.vagrant
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+.env
+_ide_helper*
+.phpstorm.meta.php
+
+#mac
+.DS_Store
+
+/scripts/test.php
+/scripts/local
+# 前端静态文件目录
+/static
+
+
