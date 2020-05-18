@@ -2,6 +2,14 @@
 
 return [
 
+    //所有非默认队列都需要单独起Consumer进程, 线上需要添加相关配置, 详见env_init/supervisor.conf
+    'special_queue' => [
+        // 实时队列，执行时间超过 1s 的请不要放入此队列
+        'realtime' => 'zhijian.realtime-queue',
+        // 慢队列，耗时较长的任务放入此队列
+        'delayed' => 'zhijian.delayed-queue',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Default Queue Connection Name
@@ -13,7 +21,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'sync'),
+    'default' => env('QUEUE_CONNECTION', 'redis'),
 
     /*
     |--------------------------------------------------------------------------
@@ -60,8 +68,8 @@ return [
 
         'redis' => [
             'driver' => 'redis',
-            'connection' => 'default',
-            'queue' => env('REDIS_QUEUE', 'default'),
+            'connection' => 'queue',
+            'queue' => 'zhijian.queue',
             'retry_after' => 90,
             'block_for' => null,
         ],

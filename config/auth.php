@@ -41,9 +41,14 @@ return [
             'provider' => 'users',
         ],
 
-        'api' => [
-            'driver' => 'token',
+        'api_user' => [
+            'driver' => 'jwt',
             'provider' => 'users',
+            'hash' => false,
+        ],
+        'api_editor' => [
+            'driver' => 'jwt',
+            'provider' => 'editor',
             'hash' => false,
         ],
     ],
@@ -68,7 +73,11 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => App\User::class,
+            'model' => App\Models\User::class,
+        ],
+        'editor' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Editor::class,
         ],
 
         // 'users' => [

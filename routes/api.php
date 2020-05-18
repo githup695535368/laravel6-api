@@ -13,11 +13,29 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+
 
 Route::prefix('v1')->namespace('Api\V1')->name('api.v1.')->group(function () {
     // 短信验证码
     Route::get('ping', 'TestController@ping');
+    Route::any('test', 'TestController@test');
+
+
+    Route::middleware('auth:api_user')->group(function() {
+        // 当前登录用户信息
+        Route::get('user', 'TestController@me');
+    });
+
+
+    Route::prefix('inte')->group(function () {
+        Route::get('users', function () {
+            // 匹配包含 「/admin/users」 的 URL
+        });
+    });
+
+
+    Route::any('intelligent-creation/crawl-img-text-map-by-baijiahao-url', 'IntelligentCreationController@AnalysisBaiJiaHaoArticleByUrl');
+
+
+
 });
