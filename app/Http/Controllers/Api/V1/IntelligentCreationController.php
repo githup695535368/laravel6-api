@@ -46,8 +46,8 @@ class IntelligentCreationController extends ApiController
      *                  @SWG\Property(property="data", type="array",
      *                      @SWG\Items(type="object",
      *                          @SWG\Property(property="news_summary", type="integer",description="新闻摘要"),
-     *                          @SWG\Property(property="image_list", type="string",description="图片列表")
-     *                          @SWG\Property(property="lexer", type="string",description="文章关键词")
+     *                          @SWG\Property(property="image_list", type="string",description="图片列表"),
+     *                          @SWG\Property(property="lexer", type="string",description="文章关键词"),
      *                          @SWG\Property(property="article_url", type="string",description="原文链接")
      *                      ),
      *                  ),
