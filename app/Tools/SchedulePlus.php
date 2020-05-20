@@ -11,8 +11,9 @@
  * $event->debug_data 是刻意生造出来用于最终执行情况的.
  */
 
-use Illuminate\Console\Scheduling\CacheMutex;
+use Illuminate\Console\Scheduling\EventMutex;
 use Illuminate\Console\Scheduling\CallbackEvent;
+use Illuminate\Console\Scheduling\CacheEventMutex;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Container\Container;
 
@@ -34,9 +35,9 @@ class SchedulePlus
     {
         $container = Container::getInstance();
 
-        $this->mutex = $container->bound(Mutex::class)
-            ? $container->make(Mutex::class)
-            : $container->make(CacheMutex::class);
+        $this->mutex = $container->bound(EventMutex::class)
+            ? $container->make(EventMutex::class)
+            : $container->make(CacheEventMutex::class);
 
     }
 
