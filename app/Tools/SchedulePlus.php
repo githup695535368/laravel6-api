@@ -141,7 +141,7 @@ class SchedulePlus
         $r = new ReflectionFunction($c);
 
         // 文件名，例如: app/..../ArchJob.php => ArchJob
-        $job = rtrim(array_last(explode('/', $r->getFileName())), '.php');
+        $job = rtrim(Arr::last(explode('/', $r->getFileName())), '.php');
 
         // Closure 的代码，然后使用空字符串拼接起来
         $command = [];
