@@ -116,7 +116,7 @@ class SchedulePlus
         while (count($this->workers)) {
             $pid = pcntl_wait($status); //父进程中可以拿到子进程的ID
             unset($this->workers[$pid]);
-            $finish_debug = array_get($pid_with_debug, $pid);
+            $finish_debug = Arr::get($pid_with_debug, $pid);
             $this->log("Job: {$finish_debug['class']} finished code: {$finish_debug['code']}, pid: {$pid} current workers: " . count($this->workers));
             usleep(50000);
         }
