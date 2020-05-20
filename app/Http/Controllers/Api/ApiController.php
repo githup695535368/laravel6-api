@@ -73,7 +73,7 @@ class ApiController extends BaseController
         $this->request = $request;
         $this->setData();
         $this->setQuery();
-        //$this->checkSign();
+        $this->checkSign();
     }
 
     public function user()
