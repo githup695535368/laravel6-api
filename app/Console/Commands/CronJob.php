@@ -49,7 +49,7 @@ class CronJob extends Command
     private function register()
     {
         return [
-
+            \App\Jobs\CronJob\TestCronJob::class,
         ];
     }
 }
