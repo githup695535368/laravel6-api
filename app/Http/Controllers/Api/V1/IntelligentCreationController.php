@@ -45,6 +45,7 @@ class IntelligentCreationController extends ApiController
      *              @SWG\Property(property="msg", type="string",description="提示信息"),
      *                  @SWG\Property(property="data", type="array",
      *                      @SWG\Items(type="object",
+     *                          @SWG\Property(property="title", type="integer",description="文章标题"),
      *                          @SWG\Property(property="news_summary", type="integer",description="新闻摘要"),
      *                          @SWG\Property(property="image_list", type="string",description="图片列表"),
      *                          @SWG\Property(property="lexer", type="string",description="文章关键词"),
@@ -104,6 +105,7 @@ class IntelligentCreationController extends ApiController
 
 
         return $this->toJson([
+            'title' => $title,
             'news_summary' => $origin_news_summary['summary'],
             'image_list' => $image_list,
             'lexer' => array_values($filter_lexer),
