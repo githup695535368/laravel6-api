@@ -56,13 +56,13 @@ class IntelligentCreationController extends ApiController
      * )
      */
 
-    public function AnalysisBaiJiaHaoArticleByUrl()
+    public function PostAnalysisBaiJiaHaoArticleByUrl()
     {
         $this->rule([
             'url' => 'required',
         ]);
 
-        $article_url = $this->query('url');
+        $article_url = $this->data('url');
         $dom = file_get_contents($article_url);
         $html_dom = new \HtmlParser\ParserDom($dom);
         $title = $html_dom->find("div.article-title h2", 0)->getPlainText();

@@ -34,7 +34,7 @@ Route::prefix('v1')->namespace('Api\V1')->name('api.v1.')->middleware(['cors'])-
     });
 
 
-    Route::any('intelligent-creation/crawl-img-text-map-by-baijiahao-url', 'IntelligentCreationController@AnalysisBaiJiaHaoArticleByUrl');
+    Route::post('intelligent-creation/analysis-baijiahao-article-by-url', 'IntelligentCreationController@PostAnalysisBaiJiaHaoArticleByUrl');
 
 
 
