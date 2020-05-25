@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Controllers\Api\OutputMsg;
 use App\Http\Controllers\Utils\TraitTVMSearch;
 use App\Logics\BaiduOpenPlatfrom\NLP\BaiduNLP;
+use App\Logics\IntelligentCreation\CustomConfig;
+use App\Models\IntelligentWriting;
 use App\Models\IntelligentWritingBgMusic;
 use App\Models\IntelligentWritingTtsPer;
 use App\Models\SensitiveWord;
@@ -271,13 +273,107 @@ class IntelligentCreationController extends ApiController
     }
 
 
+/*  tracks	是	array	视频或图片素材数组，总时长范围为10-300秒
+    +media_path	是	string	素材链接
+    +start	是	float	片头视频后时间轴中的起始时间，从0开始。单位：秒，小数点后最多三位
+    +duration	是	float	素材时长，单位：秒，小数点后最多三位
+    +type	是	string	素材类型，支持“video”、“image”
+
+*/
+
+
     public function create_timeline_task()
     {
         $this->rule([
-
+            'title' => 'required',
+            'tts_per_id' => 'required|int',
+            'bg_music_id' => 'required|int',
+            'video_logo_type' => 'required|in:' . join(',', IntelligentWriting::constants('VIDEO_LOGO_TYPE')),
+            'video_logo_user_res_id' => 'required_if:video_logo_type,' . IntelligentWriting::VIDEO_LOGO_TYPE_有 . '|int',
+            'video_begin_type' => 'required|in:' . join(',', IntelligentWriting::constants('VIDEO_BEGIN_TYPE')),
+            'video_begin_user_res_id' => 'required_if:video_logo_type,' . IntelligentWriting::VIDEO_BEGIN_TYPE_上传片头 . '|int',
+            'video_end_type' => 'required|in:' . join(',', IntelligentWriting::constants('VIDEO_END_TYPE')),
+            'video_end_user_res_id' => 'required_if:video_logo_type,' . IntelligentWriting::VIDEO_END_TYPE_上传片尾 . '|int',
+            'tracks' => 'required|array',
+            'caption_tracks' => 'required|array',
         ]);
 
+        /*$track = [
+            'resource_type' => "image|video",
+            'start' => 'ms',
+            'duration' => 'ms',
+            'sub_type' => '1,2',
+            'resource_detail_video_1' => [
+                'uuid' => 'uuid',
+                'video_url' => 'url',
+                'start_ms' =>'ms',
+                'end_ms' => 'ms',
+            ],
+            'resource_detail_video_2' => [
+                'user_resource_id' => 'id',
+            ],
+
+            'resource_detail_image_1' => [
+                'image_url' => 'url'
+            ],
+            'resource_detail_image_2' => [
+                'user_resource_id' => 'id'
+            ]
+
+        ];*/
+
+
+        $title = $this->data('title');
+        $tts_per_id = $this->data('tts_per_id');
+        $bg_music_id = $this->data('bg_music_id');
+        $video_logo_type = $this->data('video_logo_type');
+        $video_logo_user_res_id = $this->data('video_logo_user_res_id');
+        $video_begin_type = $this->data('video_begin_type');
+        $video_begin_user_res_id = $this->data('video_begin_user_res_id');
+        $video_end_type = $this->data('video_end_type');
+        $video_end_user_res_id = $this->data('video_end_user_res_id');
+        $tracks = $this->data('tracks');
+        $caption_tracks = $this->data('caption_tracks');
+
+        $intelligent = new IntelligentWriting();
+        $intelligent->title = $title;
+        $intelligent->tts_per_id = $tts_per_id;
+        $intelligent->bg_music_id = $bg_music_id;
+
+
+        //拿到所有用到的 用户素材
+        $user_resource_ids = [];
+        $video_logo_type == IntelligentWriting::VIDEO_LOGO_TYPE_有 && $user_resource_ids[] = $video_logo_user_res_id;
+        $video_begin_type == IntelligentWriting::VIDEO_BEGIN_TYPE_上传片头 && $user_resource_ids[] = $video_begin_user_res_id;
+        $video_end_type == IntelligentWriting::VIDEO_END_TYPE_上传片尾 && $user_resource_ids[] = $video_end_user_res_id;
+        foreach ($tracks as $item){
+
+            if($item['sub_type'] == 2) { //用户本地上传资源
+                $user_resource_ids[] = $item['resource_detail']['user_resource_id'];
+            }
+        }
+
+        $userResources = UserResource::find($user_resource_ids)->keyBy('id');
+
+        $customConfig = CustomConfig::createFrom();
+
+        $custom_config = [
+            'video_logo' => [
+                'type' => $video_logo_type,
+                'logo'
+            ]
+        ];
+
+
+
+
+
+
+
     }
+
+
+
 
 
     /**
@@ -375,6 +471,9 @@ class IntelligentCreationController extends ApiController
      *              type="object",
      *              @SWG\Property(property="code", type="string",description="状态码"),
      *              @SWG\Property(property="msg", type="string",description="提示信息"),
+     *              @SWG\Property(property="data", type="object",
+     *                  @SWG\Property(property="bg_music_id", type="integer",description="背景音乐id"),
+     *              )
      *          )
      *      ),
      * )
@@ -401,7 +500,9 @@ class IntelligentCreationController extends ApiController
         $bg_music->is_built_in = 0;
         $bg_music->user_id = $user->id;
         $bg_music->save();
-        return $this->successMessage('上传成功');
+        return $this->toJson([
+            'bg_music_id' => $bg_music->id,
+        ]);
     }
 
 
