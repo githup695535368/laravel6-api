@@ -17,8 +17,7 @@ class User extends Authenticatable implements JWTSubject
     use HasEnumsTrait;
 
 
-    protected $table = 'account_info';
-    protected $primaryKey = 'account_id';
+    protected $table = 'user';
 
 
     public function getJWTIdentifier()

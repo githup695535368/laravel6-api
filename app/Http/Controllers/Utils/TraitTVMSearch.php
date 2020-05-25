@@ -54,15 +54,19 @@ Trait TraitTVMSearch
 
     public function getTVMSearchHttpQueryStr($params, $filters)
     {
-        $filter_str = '&filter=';
-        foreach ($filters as $k => $v) {
-            if (is_array($v)) {
-                $filter_str .= "{$k}|" . implode(',', $v) . '|false$';
-            } else {
-                $filter_str .= "{$k}|{$v}|false$";
+        $filter_str = '';
+        if($filters){
+            $filter_str = '&filter=';
+            foreach ($filters as $k => $v) {
+                if (is_array($v)) {
+                    $filter_str .= "{$k}|" . implode(',', $v) . '|false$';
+                } else {
+                    $filter_str .= "{$k}|{$v}|false$";
+                }
             }
+            $filter_str = rtrim($filter_str, '$');
         }
-        $filter_str = rtrim($filter_str, '$');
+
         return http_build_query($params) . $filter_str;
     }
 }

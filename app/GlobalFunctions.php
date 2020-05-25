@@ -253,6 +253,10 @@ function toCamelCase($str)
     return $result;
 }
 
+function microSecToTimeStr($times)
+{
+    return secToTimeStr(intval($times / 1000));
+}
 
 /**
  * 把秒格式化成 H:i:s
@@ -284,10 +288,6 @@ function timeStrToSec($time_str)
 }
 
 
-function get_file_path($path)
-{
-    return config('filesystems.disks.public.root') . '/' . $path;
-}
 
 /**
  * \Storage:put()时 获取图片要存放的path + filename
@@ -297,7 +297,7 @@ function get_file_path($path)
  */
 function put_image_path($extention, $type = 'common')
 {
-    return 'images/' . $type . '/' . date('Y-m-d', time()) . '/' . Str::random('40') . '.' . $extention;
+    return $type . '/images/'  . date('Y-m-d', time()) . '/' . Str::random('40') . '.' . $extention;
 }
 
 /**
@@ -307,7 +307,7 @@ function put_image_path($extention, $type = 'common')
  */
 function put_file_image_path($type = 'common')
 {
-    return 'images/' . $type . '/' . date('Y-m-d', time());
+    return $type . '/images/' . date('Y-m-d', time());
 }
 
 /**
@@ -317,18 +317,21 @@ function put_file_image_path($type = 'common')
  */
 function put_file_video_path($type = 'common')
 {
-    return 'video/' . $type . '/' . date('Y-m-d', time());
+    return $type .'/video/' . date('Y-m-d', time());
 }
 
+
 /**
- * \Storage:putFile()时 获取上传视频要存放path
+ * \Storage:putFile()时 获取音频要存放path
  * @param string $type 业务类型
  * @return string
  */
-function put_file_upload_path($type = 'common', $parents = 'wj_upload')
+function put_file_audio_path($type = 'common')
 {
-    return $parents . '/' . $type . '/' . date('Ymd', time());
+    return $type .'/audio/' . date('Y-m-d', time());
 }
+
+
 
 /**
  * 根据业务类型存储资源
@@ -355,10 +358,7 @@ function storage_put_image(\Intervention\Image\Image $image, $ext = 'jpg', $type
 }
 
 
-function setOperatorName($name)
-{
-    Session::put('operator.name', $name);
-}
+
 
 /**
  * @param $len
@@ -380,45 +380,6 @@ function getRandID($len)
     return $randstr;
 }
 
-/**
- * @param $appId
- * @param $appToken
- * @param $title          视频标题，限定 8-40 个中英文字符以内
- * @param $videoUrl       视频原地址，目前支持 mp4 等，不支持 m3u8
- * @param $coverImage     视频封面图片地址 url, 目前只支持 1 张图片作为封面，封面图尺寸不小于660*370
- * @param int $isOriginal 标定是否原创，1 为原创，0 为非原创
- * @param int $autoCover  是否使用自动封面，1为使用自动封面，其余为不使用自动封面
- * @param string $tag     视频tag，tag之间以半角英文逗号分割，每个tag长度不超过10个字符，最多支持10个tag
- * @return mixed
- */
-function publishHaoKanVideo(
-    $appId,
-    $appToken,
-    $title,
-    $videoUrl,
-    $coverImage,
-    $isOriginal = 0,
-    $autoCover = 1,
-    $tag = ''
-) {
-    $url = 'http://baijiahao.baidu.com/builderinner/open/resource/video/publish';
-    $postData = array(
-        'app_id' => $appId,
-        'app_token' => $appToken,
-        'title' => $title,
-        'video_url' => $videoUrl,
-        'cover_images' => $coverImage,
-        'is_original' => $isOriginal,
-        'use_auto_cover' => $autoCover,
-        'tag' => $tag,
-    );
-
-    $httpClient = new HttpClient();
-    $result = $httpClient->post($url, $postData);
-    $jsonResult = json_decode($result, true);
-
-    return $jsonResult;
-}
 
 function array2str(array $array)
 {

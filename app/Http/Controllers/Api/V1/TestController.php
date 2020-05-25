@@ -36,6 +36,6 @@ class TestController extends ApiController
 
     public function me()
     {
-        //dd($this->user());
+
     }
 }

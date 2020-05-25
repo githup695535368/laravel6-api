@@ -16,25 +16,27 @@ use Illuminate\Http\Request;
 
 
 Route::prefix('v1')->namespace('Api\V1')->name('api.v1.')->group(function () {
-    // 短信验证码
+
     Route::get('ping', 'TestController@ping');
     Route::any('test', 'TestController@test');
 
 
+    Route::post('user/register', 'UserController@register');
+    Route::post('user/send-sms-code', 'UserController@sendSmsCode');
+    Route::post('user/login', 'UserController@login');
+    Route::post('user/change-password', 'UserController@changePassword');
+
     Route::middleware('auth:api_user')->group(function() {
         // 当前登录用户信息
         Route::get('user', 'TestController@me');
+        Route::post('intelligent-creation/upload-user-resource', 'IntelligentCreationController@uploadUserResource');
+        Route::get('intelligent-creation/list-of-options', 'IntelligentCreationController@listOfOptions');
     });
 
 
-    Route::prefix('inte')->group(function () {
-        Route::get('users', function () {
-            // 匹配包含 「/admin/users」 的 URL
-        });
-    });
+    Route::post('intelligent-creation/analysis-baijiahao-article-by-url', 'IntelligentCreationController@analysisBaiJiaHaoArticleByUrl');
+    Route::get('intelligent-creation/video-search', 'IntelligentCreationController@getSearch');
 
-
-    Route::post('intelligent-creation/analysis-baijiahao-article-by-url', 'IntelligentCreationController@PostAnalysisBaiJiaHaoArticleByUrl');
 
 
 
