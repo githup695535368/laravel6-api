@@ -15,6 +15,7 @@ use App\Http\Controllers\Utils\TraitTVMSearch;
 use App\Logics\BaiduOpenPlatfrom\NLP\BaiduNLP;
 use App\Models\IntelligentWritingBgMusic;
 use App\Models\IntelligentWritingTtsPer;
+use App\Models\SensitiveWord;
 use App\Models\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -29,7 +30,7 @@ class IntelligentCreationController extends ApiController
     {
         parent::prepare($request);
 
-        $this->not_check_sign_actions = ['uploadUserResource'];
+        $this->not_check_sign_actions = ['uploadUserResource','uploadBgMusic'];
     }
 
 
@@ -403,7 +404,6 @@ class IntelligentCreationController extends ApiController
         return $this->successMessage('上传成功');
     }
 
-    
 
     /**
      * @SWG\Get(
@@ -429,12 +429,17 @@ class IntelligentCreationController extends ApiController
      *                      @SWG\Items(type="object",
      *                          @SWG\Property(property="uuid", type="string",description="视频唯一标识码"),
      *                          @SWG\Property(property="title", type="string",description="标题"),
-     *                          @SWG\Property(property="image", type="string",description="图片链接"),
+     *                          @SWG\Property(property="item_name", type="string",description="栏目名字"),
+     *                          @SWG\Property(property="duration_str", type="string",description="视频时长"),
+     *                          @SWG\Property(property="publish_time", type="string",description="播出时间"),
+     *                          @SWG\Property(property="cp_name", type="string",description="频道名字"),
      *                          @SWG\Property(property="video_url", type="string",description="视频链接"),
-     *                          @SWG\Property(property="duration", type="string",description="视频时长"),
+
+     *                          @SWG\Property(property="time_start_str", type="string",description="开始时间str"),
+     *                          @SWG\Property(property="time_start", type="string",description="开始时间（秒）"),
+     *                          @SWG\Property(property="image", type="string",description="图片链接"),
      *                          @SWG\Property(property="brief", type="string",description="标签"),
-     *                          @SWG\Property(property="collected", type="string",description="是否已收藏  true/false"),
-     *                          @SWG\Property(property="cp_img", type="string",description="版权方logo url"),
+     *                          @SWG\Property(property="ai_type", type="string",description="ai类型 asr/ocr"),
      *                      ),
      *                  ),
      *          )
@@ -445,7 +450,6 @@ class IntelligentCreationController extends ApiController
 
     public function getSearch()
     {
-        $user = $this->user();
         $this->rule([
                 'q' => 'required',
             ]
@@ -454,6 +458,18 @@ class IntelligentCreationController extends ApiController
         $page = $this->query('page') ?? 1;
         $limit = $this->query('limit') ?? 20;
 
+
+        if (in_array($this->query('q'), SensitiveWord::getCachedSensitiveWords())) {
+            return $this->toJson([
+                'items' => [],
+                'page_info' => [
+                    'page' => $this->query('page') ?? 1,
+                    'limit' => $this->query('limit') ?? 20,
+                    'more' => false,
+                    'total' => 0,
+                ]
+            ]);
+        }
 
         if (!Str::contains($q, ' ')) {
             $q = '"' . $q . '"';
@@ -466,16 +482,16 @@ class IntelligentCreationController extends ApiController
         ];
 
         $body = $this->getTVMSearchHttpQueryStr($params, []);
-        $url = config('video.tvm_search.base_url') . '/tse/v1/doc/query?fields=files/name:cover,video_hd||props/name:chan,prog&field_match_size=10&mode=4&';// . $query_str;
+        $url = config('video.tvm_search.base_url') . '/tse/v1/doc/query?fields=files/name:cover,video,video_hd||props/name:chan,prog||media/duration&field_match_size=10&mode=4&';// . $query_str;
         $data = $this->searchRequest($url, $body);
 
-        dd($data);
 
         if ($data && $data['kind'] == 'DocList' && isset($data['status']['hit_total']) && isset($data['items'])) {
             $total = $data['status']['hit_total'];
-            $search_list = collect($data['items'])->keyBy('id')
+            $search_list = collect($data['items'])
                 ->map(function ($play) {
                     $play['files'] = array_combine(array_column($play['files'], 'name'), $play['files']);
+                    $play['props'] = array_combine(array_column($play['props'], 'name'), $play['props']);
                     isset($play['mats']) && $play['mats'] = collect($play['mats'])->groupBy('type')->toArray();
                     // true 留下
                     $play['filter'] = isset($play['mats']['ocr']) || isset($play['mats']['asr']);
@@ -483,35 +499,23 @@ class IntelligentCreationController extends ApiController
                 })->filter(function ($play) {
                     return $play['filter'];
                 });
-            $play_ids = $search_list->keys()->toArray();
-            $play_list = PlayInfo::leftJoin('item_info', 'play_info.item_id', '=', 'item_info.item_id')
-                ->leftJoin('copyright_owner', 'item_info.copyright_owner_id', '=',
-                    'copyright_owner.copyright_owner_id')
-                ->whereIn('play_info.uuid', $play_ids)
-                ->orderBy('play_info.create_time', $sorttime)
-                ->select(\DB::raw('play_info.*,item_info.name as item_name,copyright_owner.img as cp_img,copyright_owner.name as cp_name'))
-                ->get();
+
 
             $items = [];
-            collect($play_list)->each(function ($play) use ($user, $search_list, &$items) {
-                $exist = CollectInfo::whereAccountId($user->account_id)->wherePlayId($play->play_id)->exists();
-                $cover = $search_list[$play->uuid]['files']['cover']['url'];
+            collect($search_list)->each(function ($search) use (&$items) {
+                $cover = $search['files']['cover']['url'];
                 $item = [
-                    'uuid' => $play->uuid,
-                    'title' => str_contains($play->title, '：') ? explode('：', $play->title)[1] : $play->title,
-                    'full_title' => $play->title,
-                    'episode' => $play->episode,
-                    'program_name' => $play->item_name,
-                    'duration_str' => secToTimeStr(intval($play->duration / 1000)),
-                    'collected' => (bool)$exist,
-                    'cp_img' => $play->cp_img ? \Storage::url($play->cp_img) : null,
-                    'create_time' => date('Y-m-d H:i:s', $search_list[$play->uuid]['published']),
-                    'cp_name' => $play->cp_name,
-                    'vca_status' => $play->vca_status,
+                    'uuid' => $search['id'],
+                    'title' => $search['title'],
+                    'item_name' => $search['props']['prog']['label'],
+                    'duration_str' => microSecToTimeStr($search['media']['duration']),
+                    'publish_time' => date('Y-m-d H:i:s', $search['published']),
+                    'cp_name' => $search['props']['chan']['label'],
+                    'video_url' => $search['files']['video_hd']['url'] ?? $search['files']['video']['url'],
                 ];
 
                 // 遍历ocr结果
-                isset($search_list[$play->uuid]['mats']['ocr']) && collect($search_list[$play->uuid]['mats']['ocr'])->each(function (
+                isset($search['mats']['ocr']) && collect($search['mats']['ocr'])->each(function (
                     $ocr
                 ) use (
                     &$items,
@@ -536,7 +540,7 @@ class IntelligentCreationController extends ApiController
                 });
 
                 // 遍历asr结果
-                isset($search_list[$play->uuid]['mats']['asr']) && collect($search_list[$play->uuid]['mats']['asr'])->each(function (
+                isset($search['mats']['asr']) && collect($search['mats']['asr'])->each(function (
                     $asr
                 ) use (
                     &$items,
@@ -587,28 +591,60 @@ class IntelligentCreationController extends ApiController
     }
 
 
+
+    /**
+     * @SWG\Get(
+     *      path="/intelligent-creation/video-search-person",
+     *      tags={"智能创作"},
+     *      summary="人物搜索",
+     *      security={
+     *          {
+     *              "Bearer":{}
+     *          }
+     *      },
+     *      @SWG\Parameter(in="query",name="q",description="搜索关键字",required=true,type="string",),
+     *      @SWG\Parameter(in="query",name="page",description="当前页码",required=false,type="integer",),
+     *      @SWG\Parameter(in="query",name="limit",description="每页数据量"  ,required=false,type="integer",),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="请求成功",
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="code", type="string",description="状态码"),
+     *              @SWG\Property(property="msg", type="string",description="提示信息"),
+     *                  @SWG\Property(property="data", type="array",
+     *                      @SWG\Items(type="object",
+     *                          @SWG\Property(property="uuid", type="string",description="视频唯一标识码"),
+     *                          @SWG\Property(property="title", type="string",description="标题"),
+     *                          @SWG\Property(property="item_name", type="string",description="栏目名字"),
+     *                          @SWG\Property(property="duration_str", type="string",description="视频时长"),
+     *                          @SWG\Property(property="publish_time", type="string",description="播出时间"),
+     *                          @SWG\Property(property="cp_name", type="string",description="频道名字"),
+     *                          @SWG\Property(property="video_url", type="string",description="视频链接"),
+
+     *                          @SWG\Property(property="time_start_str", type="string",description="开始时间str"),
+     *                          @SWG\Property(property="time_start", type="string",description="开始时间（秒）"),
+     *                          @SWG\Property(property="image", type="string",description="图片链接"),
+     *                          @SWG\Property(property="person", type="string",description="人物名字"),
+     *                          @SWG\Property(property="ai_type", type="string",description="ai类型 per"),
+     *                      ),
+     *                  ),
+     *          )
+     *      ),
+     * )
+     */
+
+
     public function getSearchPerson()
     {
 
-        $user = $this->user();
         $this->rule([
                 'q' => 'required',
-                'start_time' => 'nullable|date_format:Y-m-d',
-                'end_time' => 'nullable|date_format:Y-m-d',
             ]
         );
         $q = $this->query('q');
-        $class = $this->query('class_id');
-        $sorttime = $this->query('sorttime');
         $page = $this->query('page') ?? 1;
         $limit = $this->query('limit') ?? 20;
-        $item_id = $this->query('item_id');
-        $class_id = $this->query('class_id');
-        $start_time = $this->query('start_time');
-        $end_time = $this->query('end_time');
-
-        $authorized_coids = explode(',', $user->user_info->copyright_owner_ids);
-
 
         if (in_array($this->query('q'), SensitiveWord::getCachedSensitiveWords())) {
             return $this->toJson([
@@ -622,79 +658,21 @@ class IntelligentCreationController extends ApiController
             ]);
         }
 
-        //这个账号能看到微剪库所有内容（以二创的形式展示）
-        if ($user->isAdminer()) {
-            $authorized_coids = CopyrightOwner::select('copyright_owner_id')->get()->pluck('copyright_owner_id')->toArray();
-        } else {
-            if ($user->isInnovateTypeTwo()) {
-                $authorized_coids = ItemInfo::whereIsAuthor(ItemInfo::IS_AUTHOR_是)
-                    ->whereAuthorType(ItemInfo::AUTHOR_TYPE_二创)
-                    ->select(\DB::raw("distinct  copyright_owner_id"))->get()->pluck('copyright_owner_id')->toArray();
-            }
-
-            if (($user->isInnovateTypeOne() && !$user->user_info->copyright_owner_ids)) {
-
-                return $this->toJson([
-                    'items' => [],
-                    'page_info' => [
-                        'page' => $this->query('page') ?? 1,
-                        'limit' => $this->query('limit') ?? 20,
-                        'more' => false,
-                        'total' => 0,
-                    ]
-                ]);
-            }
-        }
-
-        $chose_coids = $this->query('copyright_owner_id') ? explode(',',
-            $this->query('copyright_owner_id')) : $authorized_coids;
-        $coi = array_intersect($authorized_coids, $chose_coids);
 
 
         $params = [
             'q' => "@(text_per) {$q}",
-            'sortby' => urlencode("published " . strtoupper($sorttime) ?? 'DESC'),
+            'sortby' => urlencode("published DESC"),
             'hit_start' => ($page - 1) * $limit,
             'hit_size' => $limit,
         ];
-        if ($start_time && $end_time) {
-            $starttime = strtotime($start_time);
-            $endtime = strtotime(carbon($end_time)->addDay(1));
-            $params['filter_range'] = "published|{$starttime}|{$endtime}|false";
-        }
 
-        $base_uids = CopyrightOwner::find($coi)->pluck('base_uid')->toArray();
-        $filters = [
-            'prop_chan' => $base_uids,
-        ];
-        $class_id && $filters['prop_progt'] = $class_id;
-
-        if (!$user->isAdminer()) {
-            //$filters['prop_prog'] = ItemInfo::whereIsAuthor(ItemInfo::IS_AUTHOR_是)->select('base_pid')->get()->pluck('base_pid')->toArray();
-
-            if (!$item_id) {
-                if ($user->isInnovateTypeTwo()) {
-                    $filters['prop_prog'] = ItemInfo::whereIsAuthor(ItemInfo::IS_AUTHOR_是)
-                        ->whereAuthorType(ItemInfo::AUTHOR_TYPE_二创)->select('base_pid')->get()->pluck('base_pid')->toArray();
-                } elseif ($user->isInnovateTypeOne() && $user->user_info->isLimitItem()) {
-                    $filters['prop_prog'] = ItemInfo::whereIn('item_id', explode(',',
-                        $user->user_info->item_ids))->select('base_pid')->get()->pluck('base_pid')->toArray();
-                }
-
-
-            }
-
-        }
-
-        $item_id && $filters['prop_prog'] = ItemInfo::whereItemId($item_id)->first()->base_pid;
-
-
-        $body = $this->getTVMSearchHttpQueryStr($params, $filters);
-        $url = config('video.tvm_search.base_url') . '/tse/v1/doc/query?fields=files/name:ocr&field_match_size=10&mode=2&';// . $query_str;
+        $body = $this->getTVMSearchHttpQueryStr($params, []);
+        $url = config('video.tvm_search.base_url') . '/tse/v1/doc/query?fields=files/name:ocr,video,video_hd||props/name:chan,prog||media/duration&field_match_size=10&mode=2&';// . $query_str;
         $data = $this->searchRequest($url, $body, 10);
         if ($data && $data['kind'] == 'DocList' && isset($data['status']['hit_total']) && isset($data['items'])) {
             $total = $data['status']['hit_total'];
-            $search_list = collect($data['items'])->keyBy('id')
+            $search_list = collect($data['items'])
                 ->map(function ($play) {
                     //兼容没有files的坑
                     if (!isset($play['files'])) {
@@ -702,6 +680,7 @@ class IntelligentCreationController extends ApiController
                         return $play;
                     }
                     $play['files'] = array_combine(array_column($play['files'], 'name'), $play['files']);
+                    $play['props'] = array_combine(array_column($play['props'], 'name'), $play['props']);
                     isset($play['mats']) && $play['mats'] = collect($play['mats'])->groupBy('type')->toArray();
                     // true 留下
                     $play['filter'] = isset($play['mats']['per']);
@@ -709,36 +688,26 @@ class IntelligentCreationController extends ApiController
                 })->filter(function ($play) {
                     return $play['filter'];
                 });
-            $play_ids = $search_list->keys()->toArray();
-            $play_list = PlayInfo::leftJoin('item_info', 'play_info.item_id', '=', 'item_info.item_id')
-                ->leftJoin('copyright_owner', 'item_info.copyright_owner_id', '=',
-                    'copyright_owner.copyright_owner_id')
-                ->whereIn('play_info.uuid', $play_ids)
-                ->orderBy('play_info.create_time', $sorttime)
-                ->select(\DB::raw('play_info.*,item_info.name as item_name,copyright_owner.img as cp_img,copyright_owner.name as cp_name'))
-                ->get();
+
 
             $items = [];
-            collect($play_list)->each(function ($play) use ($user, $search_list, &$items) {
-                $exist = CollectInfo::whereAccountId($user->account_id)->wherePlayId($play->play_id)->exists();
-                $ocr_bin = $search_list[$play->uuid]['files']['ocr']['url'];
-                $series = $search_list[$play->uuid]['files']['ocr']['series'];
+            collect($search_list)->each(function ($search) use (&$items) {
+                $ocr_bin = $search['files']['ocr']['url'];
+                $series = $search['files']['ocr']['series'];
+
                 $item = [
-                    'uuid' => $play->uuid,
-                    'title' => str_contains($play->title, '：') ? explode('：', $play->title)[1] : $play->title,
-                    'full_title' => $play->title,
-                    'episode' => $play->episode,
-                    'program_name' => $play->item_name,
-                    'duration_str' => secToTimeStr(intval($play->duration / 1000)),
-                    'collected' => (bool)$exist,
-                    'cp_img' => $play->cp_img ? \Storage::url($play->cp_img) : null,
-                    'create_time' => date('Y-m-d H:i:s', $search_list[$play->uuid]['published']),
-                    'cp_name' => $play->cp_name,
+                    'uuid' => $search['id'],
+                    'title' => $search['title'],
+                    'item_name' => $search['props']['prog']['label'],
+                    'duration_str' => microSecToTimeStr($search['media']['duration']),
+                    'publish_time' => date('Y-m-d H:i:s', $search['published']),
+                    'cp_name' => $search['props']['chan']['label'],
+                    'video_url' => $search['files']['video_hd']['url'] ?? $search['files']['video']['url'],
                 ];
 
 
                 // 遍历ocr结果
-                isset($search_list[$play->uuid]['mats']['per']) && collect($search_list[$play->uuid]['mats']['per'])->each(function (
+                isset($search['mats']['per']) && collect($search['mats']['per'])->each(function (
                     $per
                 ) use (
                     &$items,
@@ -788,26 +757,59 @@ class IntelligentCreationController extends ApiController
     }
 
 
+
+    /**
+     * @SWG\Get(
+     *      path="/intelligent-creation/video-search-object",
+     *      tags={"智能创作"},
+     *      summary="人物搜索",
+     *      security={
+     *          {
+     *              "Bearer":{}
+     *          }
+     *      },
+     *      @SWG\Parameter(in="query",name="q",description="搜索关键字",required=true,type="string",),
+     *      @SWG\Parameter(in="query",name="page",description="当前页码",required=false,type="integer",),
+     *      @SWG\Parameter(in="query",name="limit",description="每页数据量"  ,required=false,type="integer",),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="请求成功",
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="code", type="string",description="状态码"),
+     *              @SWG\Property(property="msg", type="string",description="提示信息"),
+     *                  @SWG\Property(property="data", type="array",
+     *                      @SWG\Items(type="object",
+     *                          @SWG\Property(property="uuid", type="string",description="视频唯一标识码"),
+     *                          @SWG\Property(property="title", type="string",description="标题"),
+     *                          @SWG\Property(property="item_name", type="string",description="栏目名字"),
+     *                          @SWG\Property(property="duration_str", type="string",description="视频时长"),
+     *                          @SWG\Property(property="publish_time", type="string",description="播出时间"),
+     *                          @SWG\Property(property="cp_name", type="string",description="频道名字"),
+     *                          @SWG\Property(property="video_url", type="string",description="视频链接"),
+
+     *                          @SWG\Property(property="time_start_str", type="string",description="开始时间str"),
+     *                          @SWG\Property(property="time_start", type="string",description="开始时间（秒）"),
+     *                          @SWG\Property(property="image", type="string",description="图片链接"),
+     *                          @SWG\Property(property="brief", type="string",description="关键词"),
+     *                          @SWG\Property(property="ai_type", type="string",description="ai类型 obj"),
+     *                      ),
+     *                  ),
+     *          )
+     *      ),
+     * )
+     */
+
     public function getSearchObject()
     {
 
-        $user = $this->user();
         $this->rule([
                 'q' => 'required',
-                'start_time' => 'nullable|date_format:Y-m-d',
-                'end_time' => 'nullable|date_format:Y-m-d',
             ]
         );
         $q = $this->query('q');
-        $sorttime = $this->query('sorttime');
         $page = $this->query('page') ?? 1;
         $limit = $this->query('limit') ?? 20;
-        $item_id = $this->query('item_id');
-        $class_id = $this->query('class_id');
-        $start_time = $this->query('start_time');
-        $end_time = $this->query('end_time');
-
-        $authorized_coids = explode(',', $user->user_info->copyright_owner_ids);
 
 
         if (in_array($this->query('q'), SensitiveWord::getCachedSensitiveWords())) {
@@ -822,79 +824,21 @@ class IntelligentCreationController extends ApiController
             ]);
         }
 
-        //这个账号能看到微剪库所有内容（以二创的形式展示）
-        if ($user->isAdminer()) {
-            $authorized_coids = CopyrightOwner::select('copyright_owner_id')->get()->pluck('copyright_owner_id')->toArray();
-        } else {
-            if ($user->isInnovateTypeTwo()) {
-                $authorized_coids = ItemInfo::whereIsAuthor(ItemInfo::IS_AUTHOR_是)
-                    ->whereAuthorType(ItemInfo::AUTHOR_TYPE_二创)
-                    ->select(\DB::raw("distinct  copyright_owner_id"))->get()->pluck('copyright_owner_id')->toArray();
-            }
-
-            if (($user->isInnovateTypeOne() && !$user->user_info->copyright_owner_ids)) {
-
-                return $this->toJson([
-                    'items' => [],
-                    'page_info' => [
-                        'page' => $this->query('page') ?? 1,
-                        'limit' => $this->query('limit') ?? 20,
-                        'more' => false,
-                        'total' => 0,
-                    ]
-                ]);
-            }
-        }
-
-        $chose_coids = $this->query('copyright_owner_id') ? explode(',',
-            $this->query('copyright_owner_id')) : $authorized_coids;
-        $coi = array_intersect($authorized_coids, $chose_coids);
 
 
         $params = [
             'q' => "@(text_obj) {$q}",
-            'sortby' => urlencode("published " . strtoupper($sorttime) ?? 'DESC'),
+            'sortby' => urlencode("published DESC"),
             'hit_start' => ($page - 1) * $limit,
             'hit_size' => $limit,
         ];
-        if ($start_time && $end_time) {
-            $starttime = strtotime($start_time);
-            $endtime = strtotime(carbon($end_time)->addDay(1));
-            $params['filter_range'] = "published|{$starttime}|{$endtime}|false";
-        }
 
-        $base_uids = CopyrightOwner::find($coi)->pluck('base_uid')->toArray();
-        $filters = [
-            'prop_chan' => $base_uids,
-        ];
-        $class_id && $filters['prop_progt'] = $class_id;
-
-        if (!$user->isAdminer()) {
-            //$filters['prop_prog'] = ItemInfo::whereIsAuthor(ItemInfo::IS_AUTHOR_是)->select('base_pid')->get()->pluck('base_pid')->toArray();
-
-            if (!$item_id) {
-                if ($user->isInnovateTypeTwo()) {
-                    $filters['prop_prog'] = ItemInfo::whereIsAuthor(ItemInfo::IS_AUTHOR_是)
-                        ->whereAuthorType(ItemInfo::AUTHOR_TYPE_二创)->select('base_pid')->get()->pluck('base_pid')->toArray();
-                } elseif ($user->isInnovateTypeOne() && $user->user_info->isLimitItem()) {
-                    $filters['prop_prog'] = ItemInfo::whereIn('item_id', explode(',',
-                        $user->user_info->item_ids))->select('base_pid')->get()->pluck('base_pid')->toArray();
-                }
-
-
-            }
-
-        }
-
-        $item_id && $filters['prop_prog'] = ItemInfo::whereItemId($item_id)->first()->base_pid;
-
-
-        $body = $this->getTVMSearchHttpQueryStr($params, $filters);
-        $url = config('video.tvm_search.base_url') . '/tse/v1/doc/query?fields=files/name:cover&field_match_size=10&mode=2&';// . $query_str;
+        $body = $this->getTVMSearchHttpQueryStr($params, []);
+        $url = config('video.tvm_search.base_url') . '/tse/v1/doc/query?fields=files/name:cover,video,video_hd||props/name:chan,prog||media/duration&field_match_size=10&mode=2&';// . $query_str;
         $data = $this->searchRequest($url, $body, 10);
         if ($data && $data['kind'] == 'DocList' && isset($data['status']['hit_total']) && isset($data['items'])) {
             $total = $data['status']['hit_total'];
-            $search_list = collect($data['items'])->keyBy('id')
+            $search_list = collect($data['items'])
                 ->map(function ($play) {
                     //兼容没有files的坑
                     if (!isset($play['files'])) {
@@ -902,6 +846,7 @@ class IntelligentCreationController extends ApiController
                         return $play;
                     }
                     $play['files'] = array_combine(array_column($play['files'], 'name'), $play['files']);
+                    $play['props'] = array_combine(array_column($play['props'], 'name'), $play['props']);
                     isset($play['mats']) && $play['mats'] = collect($play['mats'])->groupBy('type')->toArray();
                     // true 留下
                     $play['filter'] = isset($play['mats']['obj']);
@@ -909,35 +854,22 @@ class IntelligentCreationController extends ApiController
                 })->filter(function ($play) {
                     return $play['filter'];
                 });
-            $play_ids = $search_list->keys()->toArray();
-            $play_list = PlayInfo::leftJoin('item_info', 'play_info.item_id', '=', 'item_info.item_id')
-                ->leftJoin('copyright_owner', 'item_info.copyright_owner_id', '=',
-                    'copyright_owner.copyright_owner_id')
-                ->whereIn('play_info.uuid', $play_ids)
-                ->orderBy('play_info.create_time', $sorttime)
-                ->select(\DB::raw('play_info.*,item_info.name as item_name,copyright_owner.img as cp_img,copyright_owner.name as cp_name'))
-                ->get();
 
             $items = [];
-            collect($play_list)->each(function ($play) use ($user, $search_list, &$items) {
-                $exist = CollectInfo::whereAccountId($user->account_id)->wherePlayId($play->play_id)->exists();
-                $cover = $search_list[$play->uuid]['files']['cover']['url'];
+            collect($search_list)->each(function ($search) use (&$items) {
+                $cover = $search['files']['cover']['url'];
                 $item = [
-                    'uuid' => $play->uuid,
-                    'title' => str_contains($play->title, '：') ? explode('：', $play->title)[1] : $play->title,
-                    'full_title' => $play->title,
-                    'episode' => $play->episode,
-                    'program_name' => $play->item_name,
-                    'duration_str' => secToTimeStr(intval($play->duration / 1000)),
-                    'collected' => (bool)$exist,
-                    'cp_img' => $play->cp_img ? \Storage::url($play->cp_img) : null,
-                    'create_time' => date('Y-m-d H:i:s', $search_list[$play->uuid]['published']),
-                    'cp_name' => $play->cp_name,
-                    'vca_status' => $play->vca_status,
+                    'uuid' => $search['id'],
+                    'title' => $search['title'],
+                    'item_name' => $search['props']['prog']['label'],
+                    'duration_str' => microSecToTimeStr($search['media']['duration']),
+                    'publish_time' => date('Y-m-d H:i:s', $search['published']),
+                    'cp_name' => $search['props']['chan']['label'],
+                    'video_url' => $search['files']['video_hd']['url'] ?? $search['files']['video']['url'],
                 ];
 
                 // 遍历ocr结果
-                isset($search_list[$play->uuid]['mats']['obj']) && collect($search_list[$play->uuid]['mats']['obj'])->each(function (
+                isset($search['mats']['obj']) && collect($search['mats']['obj'])->each(function (
                     $obj
                 ) use (
                     &$items,

@@ -36,6 +36,8 @@ Route::prefix('v1')->namespace('Api\V1')->name('api.v1.')->group(function () {
 
     Route::post('intelligent-creation/analysis-baijiahao-article-by-url', 'IntelligentCreationController@analysisBaiJiaHaoArticleByUrl');
     Route::get('intelligent-creation/video-search', 'IntelligentCreationController@getSearch');
+    Route::get('intelligent-creation/video-search-person', 'IntelligentCreationController@getSearchPerson');
+    Route::get('intelligent-creation/video-search-object', 'IntelligentCreationController@getSearchObject');
 
 
 
