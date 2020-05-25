@@ -181,6 +181,7 @@ class IntelligentCreationController extends ApiController
         $user_resource = new UserResource();
         $user_resource->user_id = $user->id;
         $user_resource->file_path = $filePath;
+        $user_resource->type = $type;
 
 
         if (file_exists($realFilePath = \Storage::path($filePath))) {
@@ -256,7 +257,7 @@ class IntelligentCreationController extends ApiController
                 'id' => $userResource->id,
                 'type' => $userResource->type,
                 'resource_url' => \Storage::url($userResource->file_path),
-                'cover_pic' => \Storage::url($userResource->cover_pic),
+                'cover_pic' => $userResource->cover_pic ? \Storage::url($userResource->cover_pic) : null,
                 'duration_str' => microSecToTimeStr($userResource->duration)
             ];
         });
