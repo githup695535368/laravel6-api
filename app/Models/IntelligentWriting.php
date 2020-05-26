@@ -69,7 +69,7 @@ class IntelligentWriting extends BaseModel
             return ;
         }
 
-        $status = $intelligent->resource->pluck('status')->unique()->toArray();
+        $status = $intelligent->resources->pluck('status')->unique()->toArray();
         if (count($status) == 1 && $status[0] == IntelligentWritingResource::STATUS_处理完成) {
             $intelligent->stage = self::STAGE_预处理完成;
             $intelligent->save();
