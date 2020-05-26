@@ -89,10 +89,10 @@ class PrepareIntelligentResource extends QueueJob
             'video_hd_url' => $url,
             'times' => array($time),
             'task_id' => $resource->id,
-            'callback' => config('video.intelligent_creation.callback'),
+            'callback' => config('video.intelligent_creation.cut_callback'),
             'video_bitrate' => '2000000'
         );
-        $value = \GuzzleHttp\json_encode($data);
+        $value = json_stringify($data);
 
         \Log::info("request_cut_" . $resource->id, [$value]);
 

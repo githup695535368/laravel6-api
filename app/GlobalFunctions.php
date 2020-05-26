@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Str;
-use Dingo\Api\Auth\Auth;
 
 /**
  * 是否生产环境
@@ -475,7 +474,7 @@ function operatorName()
         return '脚本批量修改';
     }
 
-    $user = app(Auth::class)->user(false);
+    $user = [];//= app(Auth::class)->user(false);
     if (!$user) {
         return '未登录用户';
     }

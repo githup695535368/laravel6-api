@@ -36,7 +36,7 @@ class IntelligentCreationController extends ApiController
     {
         parent::prepare($request);
 
-        $this->not_check_sign_actions = ['uploadUserResource', 'uploadBgMusic'];
+        $this->not_check_sign_actions = ['uploadUserResource', 'uploadBgMusic', 'cutVideoDone'];
     }
 
 
@@ -1111,7 +1111,7 @@ class IntelligentCreationController extends ApiController
             $this->toJson('',0, '任务不存在');
         }
 
-        $resource->callback_result = \GuzzleHttp\json_encode($jsonObject);
+        $resource->callback_result = json_stringify($jsonObject);
 
         if ($status == 1) {
             dispatch((new DownLoadIntelligentResourceCutVideo($taskId, $videoUrl))->onDelayedQueue());

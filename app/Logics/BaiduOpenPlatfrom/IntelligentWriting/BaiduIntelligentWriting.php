@@ -37,7 +37,7 @@ class BaiduIntelligentWriting extends BaiduOpenPlatfrom
         $token = $this->getAccessToken();
 
         $data = $this->ConstructionRequestData($intelligent);
-
+        \Log::info('data111',[$data]);die;
         $url = config('baidu_open_platform.intelligent_writing.create_vidpress_timeline_url') . "?access_token=$token";
         $client = $this->httpClient();
         $client->setHeader([
