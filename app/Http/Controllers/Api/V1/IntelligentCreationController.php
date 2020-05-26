@@ -1123,7 +1123,7 @@ class IntelligentCreationController extends ApiController
             $resource->intelligent->fail_msg .= "_fail_resource:$resource->id ";
             $resource->intelligent->save();
         }
-        $this->toJson('',1, '成功');
+        return $this->toJson('',1, '成功');
 
     }
 
