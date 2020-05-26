@@ -12,6 +12,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Controllers\Api\OutputMsg;
 use App\Http\Controllers\Utils\TraitTVMSearch;
+use App\Jobs\Queueable\IntelligentCreation\DownLoadIntelligentResourceCutVideo;
+use App\Jobs\Queueable\IntelligentCreation\PrepareIntelligentResource;
 use App\Logics\BaiduOpenPlatfrom\NLP\BaiduNLP;
 use App\Logics\IntelligentCreation\CustomConfig;
 use App\Logics\IntelligentCreation\ResourceDetail;
@@ -295,7 +297,7 @@ class IntelligentCreationController extends ApiController
      *              type="object",
      *              @SWG\Property(property="title", type="string",description="标题"),
      *              @SWG\Property(property="tts_per_id", type="integer",description="音色id"),
-     *              @SWG\Property(property="bg_music_id", type="integer",description="背景音乐id"),
+     *              @SWG\Property(property="bg_music_id", type="integer",description="如果有，传背景音乐id"),
      *              @SWG\Property(property="video_logo_type", type="integer",description="角标类型 1无角标 2有角标"),
      *              @SWG\Property(property="video_logo_user_res_id", type="integer",description="当角标type=2，角标用户资源id"),
      *              @SWG\Property(property="video_begin_type", type="integer",description="片头类型 1自动片头 2上传素材片头"),
@@ -357,7 +359,7 @@ class IntelligentCreationController extends ApiController
         $this->rule([
             'title' => 'required',
             'tts_per_id' => 'required|int',
-            'bg_music_id' => 'required|int',
+            'bg_music_id' => 'nullable|int',
             'video_logo_type' => 'required|in:' . join(',', IntelligentWriting::constants('VIDEO_LOGO_TYPE')),
             'video_logo_user_res_id' => 'required_if:video_logo_type,' . IntelligentWriting::VIDEO_LOGO_TYPE_有 . '|int',
             'video_begin_type' => 'required|in:' . join(',', IntelligentWriting::constants('VIDEO_BEGIN_TYPE')),
@@ -381,7 +383,7 @@ class IntelligentCreationController extends ApiController
             $intelligent->user_id = $user->id;
             $intelligent->title = $title;
             $intelligent->tts_per_id = $tts_per_id;
-            $intelligent->bg_music_id = $bg_music_id;
+            $bg_music_id && $intelligent->bg_music_id = $bg_music_id;
 
             $customConfig = CustomConfig::createFromRequestData($this->data);
             $intelligent->custom_config = $customConfig->getData();
@@ -422,7 +424,7 @@ class IntelligentCreationController extends ApiController
                 $intelligentRes->save();
             });
 
-            //dispatch()
+            dispatch_now(new PrepareIntelligentResource($intelligent->id));
             \DB::commit();
             return $this->toJson([
                 'intelligent_id' => $intelligent->id,
@@ -1079,6 +1081,53 @@ class IntelligentCreationController extends ApiController
             ]);
         }
     }
+
+
+
+
+
+    public function cutVideoDone()
+    {
+        /**
+         * {
+         * 'task_id'=>'xxxxxxxx', //视频的uuid
+         * 'status'=>1, //1、转码成功 2、转码失败
+         * 'video_url'=>'http://xxxx.mp4', //成品视频地址
+         * 'msg' => 'error'}
+         */
+        $taskId = $this->data('task_id');
+        $status = $this->data('status');
+        $videoUrl = $this->data('video_url');
+        $msg = $this->data('msg');
+
+        $jsonObject = $this->getRequest()->json()->all();
+        \Log::info(__CLASS__ . __METHOD__ . "CALLBACK", [$jsonObject]);
+
+        if (empty($taskId) || empty($status)) {
+            $this->toJson('',0, '参数错误');
+        }
+
+        if (!$resource = IntelligentWritingResource::find($taskId)) {
+            $this->toJson('',0, '任务不存在');
+        }
+
+        $resource->callback_result = \GuzzleHttp\json_encode($jsonObject);
+
+        if ($status == 1) {
+            dispatch((new DownLoadIntelligentResourceCutVideo($taskId, $videoUrl))->onDelayedQueue());
+            $resource->save();
+        } else {
+            $resource->status = IntelligentWritingResource::STATUS_处理失败;
+            $resource->save();
+            $resource->intelligent->status = IntelligentWriting::STATUS_生成失败;
+            $resource->intelligent->fail_msg .= "_fail_resource:$resource->id ";
+            $resource->intelligent->save();
+        }
+        $this->toJson('',1, '成功');
+
+    }
+
+
 
 
 }

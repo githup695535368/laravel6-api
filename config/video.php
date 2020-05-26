@@ -13,7 +13,7 @@ return [
     ],
 
     'intelligent_creation' => [
-        'cut_callback' => env('SERVER_URL') . '/api/v1/intelligent-creation/cut-done',
+        'cut_callback' => env('SERVER_URL') . '/api/v1/intelligent-creation/cut-video-done',
     ],
 
 

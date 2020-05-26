@@ -22,5 +22,7 @@ return array(
          * 基础对象
          */
         \App\Models\User::class => [],
+        \App\Models\IntelligentWriting::class => [],
+        \App\Models\IntelligentWritingResource::class => [],
     ]
 );

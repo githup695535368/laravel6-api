@@ -25,11 +25,17 @@ class IntelligentWritingResource extends BaseModel
     const STATUS_待处理 = 1;
     const STATUS_处理中 = 2;
     const STATUS_处理完成 = 3;
+    const STATUS_处理失败 = 4;
 
 
     protected $table = 'intelligent_writing_resource';
     protected $casts = [
         'resource_detail' => 'array'
     ];
+
+    public function intelligent()
+    {
+        return $this->belongsTo(IntelligentWriting::class,'iw_id','id');
+    }
 
 }

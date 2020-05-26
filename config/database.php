@@ -123,7 +123,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [
@@ -148,6 +148,12 @@ return [
             'port' => env('REDIS_PORT', 6379),
             'database' => 0,
             'read_write_timeout' => 0,
+        ],
+        'video_cut' => [
+            'host' => env('CUT_REDIS_HOST', ''),
+            'password' => env('CUT_REDIS_PASSWORD', ''),
+            'port' => env('CUT_REDIS_PORT', ''),
+            'database' => env('CUT_REDIS_DB', ''),
         ],
 
     ],

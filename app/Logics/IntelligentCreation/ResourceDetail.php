@@ -53,7 +53,7 @@ class ResourceDetail extends CommonData
     {
 
         if ($track['resource_type'] == IntelligentWritingResource::RESOURCE_TYPE_视频) {
-            if($track['sub_type'] == IntelligentWritingResource::VIDEO_SUB_TYPE_剪辑){
+            if ($track['sub_type'] == IntelligentWritingResource::VIDEO_SUB_TYPE_剪辑) {
                 $resource_detail = [
                     'uuid' => $track['resource_detail']['uuid'],
                     'video_url' => $track['resource_detail']['video_url'],
@@ -62,7 +62,7 @@ class ResourceDetail extends CommonData
                     'file_path' => null,
                 ];
                 $status = IntelligentWritingResource::STATUS_待处理;
-            } elseif($track['sub_type'] == IntelligentWritingResource::VIDEO_SUB_TYPE_用户素材){
+            } elseif ($track['sub_type'] == IntelligentWritingResource::VIDEO_SUB_TYPE_用户素材) {
                 $resource_detail = [
                     'user_resource_id' => $track['resource_detail']['user_resource_id'],
                     'file_path' => $userResources[$track['resource_detail']['user_resource_id']]['file_path']
@@ -71,12 +71,12 @@ class ResourceDetail extends CommonData
             }
         } elseif ($track['resource_type'] == IntelligentWritingResource::RESOURCE_TYPE_图片) {
 
-            if($track['sub_type'] == IntelligentWritingResource::IMAGE_SUB_TYPE_原图){
+            if ($track['sub_type'] == IntelligentWritingResource::IMAGE_SUB_TYPE_原图) {
                 $resource_detail = [
                     'image_url' => $track['resource_detail']['image_url'],
                 ];
                 $status = IntelligentWritingResource::STATUS_处理完成;
-            } elseif($track['sub_type'] == IntelligentWritingResource::IMAGE_SUB_TYPE_用户素材){
+            } elseif ($track['sub_type'] == IntelligentWritingResource::IMAGE_SUB_TYPE_用户素材) {
                 $resource_detail = [
                     'user_resource_id' => $track['resource_detail']['user_resource_id'],
                     'file_path' => $userResources[$track['resource_detail']['user_resource_id']]['file_path']
