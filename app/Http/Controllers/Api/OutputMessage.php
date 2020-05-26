@@ -40,6 +40,11 @@ class OutputMsg
         'msg' => '文件上传失败'
     ];
 
+    const CREATE_TIMELINE_TASK_FAIL = [
+        'code' => '1102',
+        'msg' => '请求视频合成失败'
+    ];
+
 
 
     // video 2001 ~ 2099

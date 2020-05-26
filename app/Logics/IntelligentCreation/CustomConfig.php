@@ -9,8 +9,12 @@
 namespace App\Logics\IntelligentCreation;
 
 
+use App\Models\IntelligentWriting;
+use App\Models\UserResource;
+use Support\CommonData;
+
 /**
- * 收房免租期&涨幅信息，即 payment_detail 字段
+ * 智能创作个性化选项配置信息，即 custom_config 字段
  *
  * {
  *   "video_logo": "{
@@ -31,7 +35,7 @@ namespace App\Logics\IntelligentCreation;
  *
  * }
  */
-class CustomConfig extends \CommonData
+class CustomConfig extends CommonData
 {
 
 
@@ -40,12 +44,54 @@ class CustomConfig extends \CommonData
      * @param $data HousePricing
      * @return static
      */
-    public static function createFromRequestData($request_data, $userResources)
+    public static function createFromRequestData($data)
     {
+        $user_resource_ids = [];
 
-        $config['video_logo'] = '';
+        $data['video_logo_type'] == IntelligentWriting::VIDEO_LOGO_TYPE_有 && $user_resource_ids[] = $data['video_logo_user_res_id'];
+        $data['video_begin_type'] == IntelligentWriting::VIDEO_BEGIN_TYPE_上传片头 && $user_resource_ids[] = $data['video_begin_user_res_id'];
+        $data['video_end_type'] == IntelligentWriting::VIDEO_END_TYPE_上传片尾 && $user_resource_ids[] = $data['video_end_user_res_id'];
+        $userResources = UserResource::find($user_resource_ids)->keyBy('id');
 
-        return self::create($detail);
+        $config['video_logo'] = [
+            'type' => $data['video_logo_type'],
+            'file_path' => $data['video_logo_type'] == IntelligentWriting::VIDEO_LOGO_TYPE_有 ? $userResources[$data['video_logo_user_res_id']]['file_path'] : '',
+            'margin' => 0,
+        ];
+
+        if ($data['video_begin_type'] == IntelligentWriting::VIDEO_BEGIN_TYPE_上传片头) {
+            $video_begin_user_res = $userResources[$data['video_begin_user_res_id']];
+            $config['video_begin'] = [
+                'type' => $data['video_begin_type'],
+                'file_path' => $video_begin_user_res['file_path'],
+                'duration' => $video_begin_user_res['duration'],
+            ];
+        } else {
+            $config['video_begin'] = [
+                'type' => $data['video_begin_type'],
+                'file_path' => null,
+                'duration' => null,
+            ];
+        }
+
+        if ($data['video_end_type'] == IntelligentWriting::VIDEO_END_TYPE_上传片尾) {
+            $video_end_user_res = $userResources[$data['video_end_user_res_id']];
+            $config['video_end'] = [
+                'type' => $data['video_end_type'],
+                'file_path' => $video_end_user_res['file_path'],
+                'duration' => $video_end_user_res['duration'],
+            ];
+        } else {
+            $config['video_end'] = [
+                'type' => $data['video_end_type'],
+                'file_path' => null,
+                'duration' => null,
+            ];
+        }
+
+
+
+        return self::create($config);
     }
 
 }

@@ -1,4 +1,5 @@
 <?php
+namespace Support;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
@@ -11,7 +12,7 @@ use Illuminate\Support\Collection;
  *
  * Class CommonData
  */
-class CommonData implements ArrayAccess, Arrayable, Countable, IteratorAggregate, Jsonable, JsonSerializable
+class CommonData implements \ArrayAccess, Arrayable, \Countable, \IteratorAggregate, Jsonable, \JsonSerializable
 {
     public static function create($data)
     {
@@ -62,7 +63,7 @@ class CommonData implements ArrayAccess, Arrayable, Countable, IteratorAggregate
 
     public function getIterator()
     {
-        return new ArrayIterator($this->data);
+        return new \ArrayIterator($this->data);
     }
 
     public function offsetExists($offset)

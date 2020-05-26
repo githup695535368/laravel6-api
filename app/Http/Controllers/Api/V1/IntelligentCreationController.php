@@ -14,8 +14,10 @@ use App\Http\Controllers\Api\OutputMsg;
 use App\Http\Controllers\Utils\TraitTVMSearch;
 use App\Logics\BaiduOpenPlatfrom\NLP\BaiduNLP;
 use App\Logics\IntelligentCreation\CustomConfig;
+use App\Logics\IntelligentCreation\ResourceDetail;
 use App\Models\IntelligentWriting;
 use App\Models\IntelligentWritingBgMusic;
+use App\Models\IntelligentWritingResource;
 use App\Models\IntelligentWritingTtsPer;
 use App\Models\SensitiveWord;
 use App\Models\UserResource;
@@ -32,7 +34,7 @@ class IntelligentCreationController extends ApiController
     {
         parent::prepare($request);
 
-        $this->not_check_sign_actions = ['uploadUserResource','uploadBgMusic'];
+        $this->not_check_sign_actions = ['uploadUserResource', 'uploadBgMusic'];
     }
 
 
@@ -274,13 +276,80 @@ class IntelligentCreationController extends ApiController
     }
 
 
-/*  tracks	是	array	视频或图片素材数组，总时长范围为10-300秒
-    +media_path	是	string	素材链接
-    +start	是	float	片头视频后时间轴中的起始时间，从0开始。单位：秒，小数点后最多三位
-    +duration	是	float	素材时长，单位：秒，小数点后最多三位
-    +type	是	string	素材类型，支持“video”、“image”
-
-*/
+    /**
+     * @SWG\Post(
+     *     path="/intelligent-creation/create-timeline-task",
+     *     tags={"智能创作"},
+     *     summary="创建视频合成任务（视频轴）",
+     *      security={
+     *          {
+     *              "Bearer":{}
+     *          }
+     *      },
+     *     @SWG\Parameter(
+     *          in="body",
+     *          name="data",
+     *          description="",
+     *          required=true,
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="title", type="string",description="标题"),
+     *              @SWG\Property(property="tts_per_id", type="integer",description="音色id"),
+     *              @SWG\Property(property="bg_music_id", type="integer",description="背景音乐id"),
+     *              @SWG\Property(property="video_logo_type", type="integer",description="角标类型 1无角标 2有角标"),
+     *              @SWG\Property(property="video_logo_user_res_id", type="integer",description="当角标type=2，角标用户资源id"),
+     *              @SWG\Property(property="video_begin_type", type="integer",description="片头类型 1自动片头 2上传素材片头"),
+     *              @SWG\Property(property="video_begin_user_res_id", type="integer",description="当片头type=2 片头用户素材id"),
+     *              @SWG\Property(property="video_end_type", type="integer",description="片尾类型 1无片尾 2上传素材片尾"),
+     *              @SWG\Property(property="video_end_user_res_id", type="integer",description="当片尾type=2 片尾用户素材id"),
+     *              @SWG\Property(property="tracks", type="array",description="音视频资源列表",
+     *                @SWG\Items(type="object",
+     *                  @SWG\Property(property="resource_type", type="string",description="资源类型 video|image"),
+     *                  @SWG\Property(property="start_time", type="integer",description="开始毫秒"),
+     *                  @SWG\Property(property="duration", type="integer",description="时长毫秒"),
+     *                  @SWG\Property(property="sub_type", type="integer",description="资源子类型 当resource_type=video 1剪辑素材 2用户素材 当resource_type=image 1原图 2用户素材 "),
+     *                  @SWG\Property(property="resource_detail1", type="object",description="当resource_type=video sub_type=1时（实际上字段传resource_detail，下同）",
+     *                      @SWG\Property(property="uuid", type="string",description="长视频uuid"),
+     *                      @SWG\Property(property="video_url", type="string",description="视频链接"),
+     *                      @SWG\Property(property="start_ms", type="integer",description="剪辑开始时间毫秒"),
+     *                      @SWG\Property(property="end_ms", type="integer",description="剪辑结束时间毫秒"),
+     *                  ),
+     *                  @SWG\Property(property="resource_detail2", type="object",description="当resource_type=video sub_type=2时",
+     *                      @SWG\Property(property="user_resource_id", type="integer",description="用户资源id"),
+     *                  ),
+     *                  @SWG\Property(property="resource_detail3", type="object",description="当resource_type=image sub_type=1时",
+     *                      @SWG\Property(property="image_url", type="string",description="图片链接"),
+     *                  ),
+     *                  @SWG\Property(property="resource_detail4", type="object",description="当resource_type=image sub_type=2时",
+     *                      @SWG\Property(property="user_resource_id", type="integer",description="用户资源id"),
+     *                  ),
+     *                ),
+     *              ),
+     *              @SWG\Property(property="caption_tracks", type="array",description="字幕资源列表",
+     *                @SWG\Items(type="object",
+     *                  @SWG\Property(property="start_time", type="integer",description="开始毫秒"),
+     *                  @SWG\Property(property="duration", type="integer",description="时长毫秒"),
+     *                  @SWG\Property(property="txt", type="string",description="文本"),
+     *                ),
+     *              ),
+     *          )
+     *      ),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="",
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="code", type="string",description="状态码"),
+     *              @SWG\Property(property="msg", type="string",description="提示信息"),
+     *                  @SWG\Property(property="data", type="array",
+     *                      @SWG\Items(type="object",
+     *                          @SWG\Property(property="intelligent_id", type="integer",description="创作id"),
+     *                      ),
+     *                  ),
+     *          )
+     *      ),
+     * )
+     */
 
 
     public function create_timeline_task()
@@ -298,83 +367,76 @@ class IntelligentCreationController extends ApiController
             'tracks' => 'required|array',
             'caption_tracks' => 'required|array',
         ]);
-
-        /*$track = [
-            'resource_type' => "image|video",
-            'start' => 'ms',
-            'duration' => 'ms',
-            'sub_type' => '1,2',
-            'resource_detail_video_1' => [
-                'uuid' => 'uuid',
-                'video_url' => 'url',
-                'start_ms' =>'ms',
-                'end_ms' => 'ms',
-            ],
-            'resource_detail_video_2' => [
-                'user_resource_id' => 'id',
-            ],
-
-            'resource_detail_image_1' => [
-                'image_url' => 'url'
-            ],
-            'resource_detail_image_2' => [
-                'user_resource_id' => 'id'
-            ]
-
-        ];*/
-
-
+        $user = $this->user();
         $title = $this->data('title');
         $tts_per_id = $this->data('tts_per_id');
         $bg_music_id = $this->data('bg_music_id');
-        $video_logo_type = $this->data('video_logo_type');
-        $video_logo_user_res_id = $this->data('video_logo_user_res_id');
-        $video_begin_type = $this->data('video_begin_type');
-        $video_begin_user_res_id = $this->data('video_begin_user_res_id');
-        $video_end_type = $this->data('video_end_type');
-        $video_end_user_res_id = $this->data('video_end_user_res_id');
         $tracks = $this->data('tracks');
         $caption_tracks = $this->data('caption_tracks');
 
-        $intelligent = new IntelligentWriting();
-        $intelligent->title = $title;
-        $intelligent->tts_per_id = $tts_per_id;
-        $intelligent->bg_music_id = $bg_music_id;
+
+        \DB::beginTransaction();
+        try {
+            $intelligent = new IntelligentWriting();
+            $intelligent->user_id = $user->id;
+            $intelligent->title = $title;
+            $intelligent->tts_per_id = $tts_per_id;
+            $intelligent->bg_music_id = $bg_music_id;
+
+            $customConfig = CustomConfig::createFromRequestData($this->data);
+            $intelligent->custom_config = $customConfig->getData();
+            $intelligent->save();
 
 
-        //拿到所有用到的 用户素材
-        $user_resource_ids = [];
-        $video_logo_type == IntelligentWriting::VIDEO_LOGO_TYPE_有 && $user_resource_ids[] = $video_logo_user_res_id;
-        $video_begin_type == IntelligentWriting::VIDEO_BEGIN_TYPE_上传片头 && $user_resource_ids[] = $video_begin_user_res_id;
-        $video_end_type == IntelligentWriting::VIDEO_END_TYPE_上传片尾 && $user_resource_ids[] = $video_end_user_res_id;
-        foreach ($tracks as $item){
-
-            if($item['sub_type'] == 2) { //用户本地上传资源
-                $user_resource_ids[] = $item['resource_detail']['user_resource_id'];
+            //拿到所有用到的 用户素材
+            $user_resource_ids = [];
+            foreach ($tracks as $item) {
+                if ($item['sub_type'] == 2) { //用户本地上传资源
+                    $user_resource_ids[] = $item['resource_detail']['user_resource_id'];
+                }
             }
+            $userResources = UserResource::find($user_resource_ids)->keyBy('id');
+
+            collect($tracks)->each(function ($track) use ($userResources, $intelligent) {
+                $intelligentRes = new IntelligentWritingResource();
+                $intelligentRes->iw_id = $intelligent->id;
+                $intelligentRes->resource_type = $track['resource_type'];
+                $intelligentRes->start_time = $track['start_time'];
+                $intelligentRes->duration = $track['duration'];
+                $intelligentRes->sub_type = $track['sub_type'];
+                list($resourceDetail, $status) = ResourceDetail::createFromTrack($track, $userResources);
+                $intelligentRes->resource_detail = $resourceDetail->getData();
+                $intelligentRes->status = $status;
+                $intelligentRes->save();
+            });
+
+
+            collect($caption_tracks)->each(function ($caption_track) use ($intelligent) {
+                $intelligentRes = new IntelligentWritingResource();
+                $intelligentRes->iw_id = $intelligent->id;
+                $intelligentRes->resource_type = 'caption';
+                $intelligentRes->start_time = $caption_track['start_time'];
+                $intelligentRes->duration = $caption_track['duration'];
+                $intelligentRes->caption_txt = $caption_track['txt'];
+                $intelligentRes->status = IntelligentWritingResource::STATUS_处理完成;
+                $intelligentRes->save();
+            });
+
+            //dispatch()
+            \DB::commit();
+            return $this->toJson([
+                'intelligent_id' => $intelligent->id,
+            ]);
+        } catch (\Exception $exception) {
+            \DB::rollBack();
+
+            \Log::info(__METHOD__ . '请求视频合成失败',
+                [$exception->getMessage(), $exception->getTraceAsString(), $this->request->all()]);
+            return $this->toError(OutputMsg::CREATE_TIMELINE_TASK_FAIL);
         }
-
-        $userResources = UserResource::find($user_resource_ids)->keyBy('id');
-
-        $customConfig = CustomConfig::createFrom();
-
-        $custom_config = [
-            'video_logo' => [
-                'type' => $video_logo_type,
-                'logo'
-            ]
-        ];
-
-
-
-
-
 
 
     }
-
-
-
 
 
     /**
@@ -533,10 +595,10 @@ class IntelligentCreationController extends ApiController
      *                          @SWG\Property(property="title", type="string",description="标题"),
      *                          @SWG\Property(property="item_name", type="string",description="栏目名字"),
      *                          @SWG\Property(property="duration_str", type="string",description="视频时长"),
+     *                          @SWG\Property(property="duration_ms", type="string",description="视频时长ms"),
      *                          @SWG\Property(property="publish_time", type="string",description="播出时间"),
      *                          @SWG\Property(property="cp_name", type="string",description="频道名字"),
      *                          @SWG\Property(property="video_url", type="string",description="视频链接"),
-
      *                          @SWG\Property(property="time_start_str", type="string",description="开始时间str"),
      *                          @SWG\Property(property="time_start", type="string",description="开始时间（秒）"),
      *                          @SWG\Property(property="image", type="string",description="图片链接"),
@@ -611,6 +673,7 @@ class IntelligentCreationController extends ApiController
                     'title' => $search['title'],
                     'item_name' => $search['props']['prog']['label'],
                     'duration_str' => microSecToTimeStr($search['media']['duration']),
+                    'duration_ms' => $search['media']['duration'],
                     'publish_time' => date('Y-m-d H:i:s', $search['published']),
                     'cp_name' => $search['props']['chan']['label'],
                     'video_url' => $search['files']['video_hd']['url'] ?? $search['files']['video']['url'],
@@ -693,7 +756,6 @@ class IntelligentCreationController extends ApiController
     }
 
 
-
     /**
      * @SWG\Get(
      *      path="/intelligent-creation/video-search-person",
@@ -720,10 +782,10 @@ class IntelligentCreationController extends ApiController
      *                          @SWG\Property(property="title", type="string",description="标题"),
      *                          @SWG\Property(property="item_name", type="string",description="栏目名字"),
      *                          @SWG\Property(property="duration_str", type="string",description="视频时长"),
+     *                          @SWG\Property(property="duration_ms", type="string",description="视频时长ms"),
      *                          @SWG\Property(property="publish_time", type="string",description="播出时间"),
      *                          @SWG\Property(property="cp_name", type="string",description="频道名字"),
      *                          @SWG\Property(property="video_url", type="string",description="视频链接"),
-
      *                          @SWG\Property(property="time_start_str", type="string",description="开始时间str"),
      *                          @SWG\Property(property="time_start", type="string",description="开始时间（秒）"),
      *                          @SWG\Property(property="image", type="string",description="图片链接"),
@@ -759,7 +821,6 @@ class IntelligentCreationController extends ApiController
                 ]
             ]);
         }
-
 
 
         $params = [
@@ -802,6 +863,7 @@ class IntelligentCreationController extends ApiController
                     'title' => $search['title'],
                     'item_name' => $search['props']['prog']['label'],
                     'duration_str' => microSecToTimeStr($search['media']['duration']),
+                    'duration_ms' => $search['media']['duration'],
                     'publish_time' => date('Y-m-d H:i:s', $search['published']),
                     'cp_name' => $search['props']['chan']['label'],
                     'video_url' => $search['files']['video_hd']['url'] ?? $search['files']['video']['url'],
@@ -859,7 +921,6 @@ class IntelligentCreationController extends ApiController
     }
 
 
-
     /**
      * @SWG\Get(
      *      path="/intelligent-creation/video-search-object",
@@ -886,10 +947,10 @@ class IntelligentCreationController extends ApiController
      *                          @SWG\Property(property="title", type="string",description="标题"),
      *                          @SWG\Property(property="item_name", type="string",description="栏目名字"),
      *                          @SWG\Property(property="duration_str", type="string",description="视频时长"),
+     *                          @SWG\Property(property="duration_ms", type="string",description="视频时长ms"),
      *                          @SWG\Property(property="publish_time", type="string",description="播出时间"),
      *                          @SWG\Property(property="cp_name", type="string",description="频道名字"),
      *                          @SWG\Property(property="video_url", type="string",description="视频链接"),
-
      *                          @SWG\Property(property="time_start_str", type="string",description="开始时间str"),
      *                          @SWG\Property(property="time_start", type="string",description="开始时间（秒）"),
      *                          @SWG\Property(property="image", type="string",description="图片链接"),
@@ -925,7 +986,6 @@ class IntelligentCreationController extends ApiController
                 ]
             ]);
         }
-
 
 
         $params = [
@@ -965,6 +1025,7 @@ class IntelligentCreationController extends ApiController
                     'title' => $search['title'],
                     'item_name' => $search['props']['prog']['label'],
                     'duration_str' => microSecToTimeStr($search['media']['duration']),
+                    'duration_ms' => $search['media']['duration'],
                     'publish_time' => date('Y-m-d H:i:s', $search['published']),
                     'cp_name' => $search['props']['chan']['label'],
                     'video_url' => $search['files']['video_hd']['url'] ?? $search['files']['video']['url'],
