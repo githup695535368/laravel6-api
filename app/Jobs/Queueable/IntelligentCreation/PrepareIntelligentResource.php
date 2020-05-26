@@ -88,7 +88,7 @@ class PrepareIntelligentResource extends QueueJob
         $data = array(
             'video_hd_url' => $url,
             'times' => array($time),
-            'task_id' => $resource->id,
+            'task_id' => strval($resource->id),
             'callback' => config('video.intelligent_creation.cut_callback'),
             'video_bitrate' => '2000000'
         );
