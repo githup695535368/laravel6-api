@@ -547,7 +547,7 @@ class IntelligentCreationController extends ApiController
     {
         $this->rule([
             'title' => 'required',
-            'resource' => 'required|file|max:2048',
+            'resource' => 'required|file|max:4096',
         ]);
 
         $user = $this->user();
