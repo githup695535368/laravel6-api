@@ -57,7 +57,7 @@ class MobileVerify
             default:
             case self::CH_短信:
                 //todo 发送短信逻辑
-                try {
+                /*try {
                     BaiduSmsCenter::sendCode($mobile,$code);
                     break;
                 } catch (Exception $exception) {
@@ -65,7 +65,17 @@ class MobileVerify
                     Log::info('短信发信失败', [$exception->getMessage()]);
                     $this->setError('短信网关错误');
                     return false;
-                }
+                }*/
+
+            try {
+                SmsCenter::sendCode($mobile,$code);
+                break;
+            } catch (Overtrue\EasySms\Exceptions\NoGatewayAvailableException $exception) {
+
+                Log::info('短信发信失败', [$exception->getExceptions()]);
+                $this->setError('短信网关错误');
+                return false;
+            }
 
             case self::CH_语音:
 

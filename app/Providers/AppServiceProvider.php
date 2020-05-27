@@ -23,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // 自定义验证
+        \Validator::resolver(
+            function ($translator, array $data, array $rules, array $messages, array $customAttributes) {
+                return new \Validation\CustomValidator($translator, $data, $rules, $messages, $customAttributes);
+            }
+        );
     }
 }

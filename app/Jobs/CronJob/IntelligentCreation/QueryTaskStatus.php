@@ -10,6 +10,8 @@ namespace App\Jobs\CronJob\IntelligentCreation;
 
 
 use App\Jobs\CronJob;
+use App\Logics\BaiduOpenPlatfrom\IntelligentWriting\BaiduIntelligentWriting;
+use App\Models\IntelligentWriting;
 
 class QueryTaskStatus extends CronJob
 {
@@ -23,7 +25,18 @@ class QueryTaskStatus extends CronJob
 
     private function queryTaskStatus()
     {
-        sleep(300);
+        $BDIntelligent = new BaiduIntelligentWriting();
+        IntelligentWriting::whereStage(IntelligentWriting::STAGE_合成中)->whereNotNull('job_id')->get()
+            ->each(function ($intelligent) use ($BDIntelligent) {
+                $response  = $BDIntelligent->query_vidpress($intelligent->job_id);
+                if($response){
+                    if($response['error_code'] == 0){
+
+                    } else {
+
+                    }
+                }
+            });
         \Log::info('QueryTaskStatus');
     }
 }

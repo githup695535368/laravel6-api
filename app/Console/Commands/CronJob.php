@@ -51,7 +51,7 @@ class CronJob extends Command
         return [
             //测试定时任务
             //\App\Jobs\CronJob\TestCronJob::class,
-            \App\Jobs\CronJob\IntelligentCreation\QueryTaskStatus::class
+            //\App\Jobs\CronJob\IntelligentCreation\QueryTaskStatus::class
 
         ];
     }
