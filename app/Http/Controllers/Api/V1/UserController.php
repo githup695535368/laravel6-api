@@ -11,15 +11,24 @@ class UserController extends ApiController
 {
     //
 
-
     /**
      * @SWG\Post(
      *      path="/user/register",
      *      tags={"User"},
      *      summary="用户注册",
-     *      @SWG\Parameter(in="formData", name="ver_code", type="string", required=true, description="验证码", default="3256"),
-     *      @SWG\Parameter(in="formData", name="phone", type="string", required=true, description="账户管理员手机号", default="18711110000"),
-     *      @SWG\Parameter(in="formData", name="password", type="string", required=true, description="登陆密码", default="123456"),
+     *      @SWG\Parameter(
+     *          in="body",
+     *          name="data",
+     *          description="",
+     *          required=true,
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="ver_code",description="验证码",type="string"),
+     *              @SWG\Property(property="phone",description="电话号码",type="string"),
+     *              @SWG\Property(property="password",description="登陆密码",type="string"),
+     *              @SWG\Property(property="nickname",description="用户昵称",type="string"),
+     *          )
+     *      ),
      *      @SWG\Response(
      *          response=200,
      *          description="",
@@ -27,30 +36,30 @@ class UserController extends ApiController
      *              type="object",
      *              @SWG\Property(property="code", type="string",description="状态码"),
      *              @SWG\Property(property="msg", type="string",description="提示信息"),
-     *              @SWG\Property(property="data", type="object",
-     *                          @SWG\Property(property="status", type="string",description="成功返回true 失败返回false"),
-     *                  ),
      *          )
      *      ),
      * )
      */
 
-
-    public function register(Request $request)
+    public function register()
     {
         // 机构和个人通用
         $this->rule([
+            'nickname' => 'required',
             'ver_code' => 'required',
             'phone' => 'required|mobile|unique:user',
             'password' => 'required',
         ], [
+            'nickname' => '用户昵称',
             'ver_code' => '验证码',
             'phone' => '账户管理员手机号',
             'password' => '登陆密码',
         ]);
 
-        $ver_code = $request->ver_code;
-        $phone = $request->phone;
+        $ver_code = $this->data('ver_code');
+        $phone = $this->data('phone');
+        $password = $this->data('password');
+        $nickname = $this->data('nickname');
 
         $mobileVerify = new \MobileVerify();
         if ($ver_code != 8848) {
@@ -59,15 +68,13 @@ class UserController extends ApiController
             }
         }
 
-        $password = $request->password;
         $user = new User();
+        $user->nickname = $nickname;
         $user->phone = $phone;
         $user->password = $password;
         $user->save();
 
-        return $this->toJson([
-            'status' => true
-        ]);
+        return $this->successMessage("注册成功");
     }
 
 
@@ -114,7 +121,7 @@ class UserController extends ApiController
         $status = $mobileVerify->sendCode($mobile);
 
         if ($status) {
-            return $this->toJson(['status' => $status]);
+            return $this->successMessage('发送成功');
         } else {
             return $this->toError(OutputMsg::MOBILE_CODE_ERROR, $mobileVerify->getError(), ['status' => $status]);
         }
