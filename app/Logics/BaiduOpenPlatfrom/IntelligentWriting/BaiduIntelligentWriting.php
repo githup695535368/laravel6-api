@@ -22,7 +22,7 @@ class BaiduIntelligentWriting extends BaiduOpenPlatfrom
     public function __construct()
     {
         $this->app_key = config('baidu_open_platform.intelligent_writing.app_key');
-        $this->app_secret = config('baidu_open_platform.nlp.intelligent_writing');
+        $this->app_secret = config('baidu_open_platform.intelligent_writing.app_secret');
         $this->access_token_url = sprintf(config('baidu_open_platform.intelligent_writing.access_token_url'),
             $this->app_key, $this->app_secret);
     }
@@ -37,7 +37,7 @@ class BaiduIntelligentWriting extends BaiduOpenPlatfrom
         $token = $this->getAccessToken();
 
         $data = $this->ConstructionRequestData($intelligent);
-        \Log::info('data111',[$data]);die;
+
         $url = config('baidu_open_platform.intelligent_writing.create_vidpress_timeline_url') . "?access_token=$token";
         $client = $this->httpClient();
         $client->setHeader([
@@ -67,8 +67,8 @@ class BaiduIntelligentWriting extends BaiduOpenPlatfrom
 
         if ($customConfig->get('video_logo.type') == IntelligentWriting::VIDEO_LOGO_TYPE_有) {
             $data['video_logo'] = \Storage::url($customConfig->get('video_logo.file_path'));
-            $data['video_logo_margin'] = \Storage::url($customConfig->get('video_logo.margin', 0));
-            $data['video_logo_pos'] = \Storage::url($customConfig->get('video_logo.pos', 'top-left'));
+            $data['video_logo_margin'] = $customConfig->get('video_logo.margin', 0);
+            $data['video_logo_pos'] = $customConfig->get('video_logo.pos', 'top-left');
         }
 
         if ($intelligent->bg_music_id) {
