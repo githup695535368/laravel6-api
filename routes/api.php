@@ -33,6 +33,7 @@ Route::prefix('v1')->namespace('Api\V1')->name('api.v1.')->group(function () {
         Route::post('intelligent-creation/upload-bg-music', 'IntelligentCreationController@uploadBgMusic');
         Route::get('intelligent-creation/user-resource-list', 'IntelligentCreationController@userResourceList');
         Route::get('intelligent-creation/list-of-options', 'IntelligentCreationController@listOfOptions');
+        Route::get('intelligent-creation/intelligent-video-list', 'IntelligentCreationController@intelligentVideoList');
         Route::post('intelligent-creation/create-timeline-task', 'IntelligentCreationController@create_timeline_task');
     });
 
@@ -42,6 +43,7 @@ Route::prefix('v1')->namespace('Api\V1')->name('api.v1.')->group(function () {
     Route::get('intelligent-creation/video-search-person', 'IntelligentCreationController@getSearchPerson');
     Route::get('intelligent-creation/video-search-object', 'IntelligentCreationController@getSearchObject');
     Route::post('intelligent-creation/cut-video-done', 'IntelligentCreationController@cutVideoDone');
+    Route::get('intelligent-creation/query-task', 'IntelligentCreationController@queryTask');
 
 
 

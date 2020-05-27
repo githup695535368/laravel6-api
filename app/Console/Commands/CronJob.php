@@ -49,7 +49,10 @@ class CronJob extends Command
     private function register()
     {
         return [
-            \App\Jobs\CronJob\TestCronJob::class,
+            //测试定时任务
+            //\App\Jobs\CronJob\TestCronJob::class,
+            \App\Jobs\CronJob\IntelligentCreation\QueryTaskStatus::class
+
         ];
     }
 }

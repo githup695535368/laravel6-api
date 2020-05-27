@@ -19,6 +19,11 @@ class User extends Authenticatable implements JWTSubject
 
     protected $table = 'user';
 
+    public function getUserName()
+    {
+        return $this->nickname;
+    }
+
 
     public function getJWTIdentifier()
     {

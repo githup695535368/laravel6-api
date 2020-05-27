@@ -44,7 +44,7 @@ class BaiduIntelligentWriting extends BaiduOpenPlatfrom
             "Content-Type: application/json",
         ]);
 
-        return json_decode($client->post($url, json_encode($data)), true);
+        return json_decode($client->post($url, json_encode($data), 10), true);
 
     }
 
@@ -104,6 +104,19 @@ class BaiduIntelligentWriting extends BaiduOpenPlatfrom
         $data['caption_tracks'] = $caption_tracks;
 
         return $data;
+    }
+
+
+    public function query_vidpress($job_id)
+    {
+        $token = $this->getAccessToken();
+        $data = [
+            'job_id' => $job_id
+        ];
+        $url = config('baidu_open_platform.intelligent_writing.query_vidpress_url') . "?access_token=$token";
+        $client = $this->httpClient();
+
+        return json_decode($client->post($url, http_build_query($data), 10), true);
     }
 
 }

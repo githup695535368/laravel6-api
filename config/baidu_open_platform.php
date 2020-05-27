@@ -19,6 +19,7 @@ return [
         'app_secret' => env('BDY_INTELLIGENT_WRITING_CLIENT_SECRET'),
         'access_token_url' => 'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=%s&client_secret=%s',
         'create_vidpress_timeline_url' => 'https://aip.baidubce.com/rpc/2.0/nlp/v1/create_vidpress_timeline',
+        'query_vidpress_url' => 'https://aip.baidubce.com/rest/2.0/nlp/v1/query_vidpress',
     ],
 
     'access_token_url' => 'https://openapi.baidu.com/oauth/2.0/token?grant_type=client_credentials&client_id=%s&client_secret=%s',

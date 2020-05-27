@@ -10,10 +10,6 @@ namespace App\Http\Controllers\Api\V1;
 
 
 use App\Http\Controllers\Api\ApiController;
-use App\Jobs\Queueable\IntelligentCreation\DownLoadIntelligentResourceCutVideo;
-use App\Jobs\Queueable\IntelligentCreation\PrepareIntelligentResource;
-use App\Models\User;
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 
 class TestController extends ApiController
@@ -33,7 +29,7 @@ class TestController extends ApiController
 
     public function test()
     {
-        dispatch_now(new PrepareIntelligentResource(5));
+
     }
 
     public function me()

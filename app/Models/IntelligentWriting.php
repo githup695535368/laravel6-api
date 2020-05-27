@@ -23,19 +23,23 @@ class IntelligentWriting extends BaseModel
     const  VIDEO_END_TYPE_无片尾 = 1;
     const  VIDEO_END_TYPE_上传片尾 = 2;
 
-    const STAGE_未开始 = 1;
-    const STAGE_预处理 = 2;
-    const STAGE_预处理完成 = 3;
-    const STAGE_合成中 = 4;
-    const STAGE_合成完成 = 5;
+    const STAGE_未开始 = "未开始";
+    const STAGE_预处理 = "预处理";
+    const STAGE_待合成 = "待合成";
+    const STAGE_合成中 = "合成中";
+    const STAGE_已合成 = "已合成";
 
-    const STATUS_已创建 = 0;
-    const STATUS_生成中 = 1;
-    const STATUS_生成成功 = 2 ;
-    const STATUS_生成失败 = -1;
+    const STATUS_已创建 = "已创建";
+    const STATUS_生成中 = "生成中";
+    const STATUS_生成成功 = "生成成功";
+    const STATUS_生成失败 = "生成失败";
 
 
     protected $table = 'intelligent_writing';
+
+    protected $dates = [
+        'finished_at' //视频生成完成时间
+    ];
 
     protected $casts = [
         'custom_config' => 'array',
@@ -65,13 +69,13 @@ class IntelligentWriting extends BaseModel
             return;
         }
 
-        if (in_array($intelligent->stage, [self::STAGE_预处理完成, self::STAGE_合成中,self::STAGE_合成完成])) {
+        if (in_array($intelligent->stage, [self::STAGE_待合成, self::STAGE_合成中,self::STAGE_已合成])) {
             return ;
         }
 
         $status = $intelligent->resources->pluck('status')->unique()->toArray();
         if (count($status) == 1 && $status[0] == IntelligentWritingResource::STATUS_处理完成) {
-            $intelligent->stage = self::STAGE_预处理完成;
+            $intelligent->stage = self::STAGE_待合成;
             $intelligent->save();
             dispatch_now(new RequestCreateVidpressTimeline($intelligent->id));
         }

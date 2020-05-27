@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\OutputMsg;
 use App\Http\Controllers\Utils\TraitTVMSearch;
 use App\Jobs\Queueable\IntelligentCreation\DownLoadIntelligentResourceCutVideo;
 use App\Jobs\Queueable\IntelligentCreation\PrepareIntelligentResource;
+use App\Logics\BaiduOpenPlatfrom\IntelligentWriting\BaiduIntelligentWriting;
 use App\Logics\BaiduOpenPlatfrom\NLP\BaiduNLP;
 use App\Logics\IntelligentCreation\CustomConfig;
 use App\Logics\IntelligentCreation\ResourceDetail;
@@ -159,6 +160,9 @@ class IntelligentCreationController extends ApiController
      *              type="object",
      *              @SWG\Property(property="code", type="string",description="状态码"),
      *              @SWG\Property(property="msg", type="string",description="提示信息"),
+     *              @SWG\Property(property="data", type="object",
+     *                  @SWG\Property(property="id", type="integer",description="用户素材id"),
+     *              )
      *          )
      *      ),
      * )
@@ -202,7 +206,9 @@ class IntelligentCreationController extends ApiController
         $type == UserResource::TYPE_视频 && $user_resource->duration = $duration;
         $user_resource->save();
 
-        return $this->successMessage('上传成功');
+        return $this->toJson([
+            'id' => $user_resource->id,
+        ]);
     }
 
 
@@ -216,6 +222,7 @@ class IntelligentCreationController extends ApiController
      *              "Bearer":{}
      *          }
      *      },
+     *      @SWG\Parameter(in="query",name="type",description="资源类型 image|video",required=false,type="string",),
      *      @SWG\Parameter(in="query",name="page",description="当前页码",required=false,type="integer",),
      *      @SWG\Parameter(in="query",name="limit",description="每页数据量"  ,required=false,type="integer",),
      *      @SWG\Response(
@@ -247,11 +254,20 @@ class IntelligentCreationController extends ApiController
 
     public function userResourceList()
     {
+
+        $this->rule([
+            'type' => 'nullable|in:' . join(',', UserResource::constants('TYPE')),
+        ]);
         $user = $this->user();
         $page = $this->query('page') ?? 1;
         $limit = $this->query('limit') ?? 20;
+        $type = $this->query('type');
 
-        $userResourceQuery = UserResource::whereUserId($user->id);
+        $userResourceQuery = UserResource::whereUserId($user->id)->latest('id')
+            ->when($type, function ($query) use($type) {
+                return $query->whereType($type);
+            });
+
 
         $paginate = $userResourceQuery->paginate($limit);
         $last_page = $paginate->lastPage();
@@ -436,6 +452,109 @@ class IntelligentCreationController extends ApiController
                 [$exception->getMessage(), $exception->getTraceAsString(), $this->request->all()]);
             return $this->toError(OutputMsg::CREATE_TIMELINE_TASK_FAIL);
         }
+
+
+    }
+
+    public function queryTask()
+    {
+        $this->rule([
+            'intelligent_id' => 'required'
+        ]);
+
+        if(!$intelligent = IntelligentWriting::find($this->query('intelligent_id'))){
+            return $this->toError(OutputMsg::PARAMS_ERROR);
+        }
+
+        if($job_id = $intelligent->job_id){
+            $BDIntelligent = new BaiduIntelligentWriting();
+            $response = $BDIntelligent->query_vidpress($job_id);
+            return $this->toJson($response);
+        } else {
+            return $this->successMessage("视频未合成");
+        }
+
+    }
+
+
+
+    /**
+     * @SWG\Get(
+     *      path="/intelligent-creation/intelligent-video-list",
+     *      tags={"智能创作"},
+     *      summary="智能创作视频库 列表",
+     *      security={
+     *          {
+     *              "Bearer":{}
+     *          }
+     *      },
+     *      @SWG\Parameter(in="query",name="keyword",description="标题关键词",required=false,type="string",),
+     *      @SWG\Parameter(in="query",name="page",description="当前页码",required=false,type="integer",),
+     *      @SWG\Parameter(in="query",name="limit",description="每页数据量"  ,required=false,type="integer",),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="请求成功",
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="code", type="string",description="状态码"),
+     *              @SWG\Property(property="msg", type="string",description="提示信息"),
+     *              @SWG\Property(property="data", type="object",
+     *                  @SWG\Property(property="page", type="string",description="当前页码"),
+     *                  @SWG\Property(property="limit", type="string",description="每页数据条数"),
+     *                  @SWG\Property(property="last_page", type="string",description="最后一页"),
+     *                      @SWG\Property(property="list", type="array",
+     *                              @SWG\Items(type="object",
+     *                              @SWG\Property(property="id", type="string",description="智能创作id"),
+     *                              @SWG\Property(property="title", type="string",description="标题"),
+     *                              @SWG\Property(property="status", type="string",description="视频合成状态"),
+     *                              @SWG\Property(property="cover_pic", type="string",description="频封面图"),
+     *                              @SWG\Property(property="video_url", type="string",description="视频链接"),
+     *                              @SWG\Property(property="finished_time", type="string",description="视频生成时间"),
+     *                      ),
+     *                  ),
+     *               ),
+     *
+     *          )
+     *      ),
+     * )
+     */
+
+    public function intelligentVideoList()
+    {
+
+        $user = $this->user();
+        $page = $this->query('page') ?? 1;
+        $limit = $this->query('limit') ?? 20;
+        $keyword = $this->query('keyword');
+
+        $userResourceQuery = IntelligentWriting::whereUserId($user->id)
+            ->when($keyword, function($query) use ($keyword) {
+                return $query->where('title', 'like', "%{$keyword}%");
+            });
+
+
+        $paginate = $userResourceQuery->paginate($limit);
+        $last_page = $paginate->lastPage();
+        $total = $paginate->total();
+        $list = $paginate->getCollection()->map(function ($intelligent) {
+            return [
+                'id' => $intelligent->id,
+                'title' => $intelligent->title,
+                'status' => $intelligent->status,
+                'finished_time' => toDatetimeString($intelligent->finished_at),
+                'cover_pic' => $intelligent->cover_pic ? \Storage::url($intelligent->cover_pic) : null,
+                'video_url' => $intelligent->video_path ? \Storage::url($intelligent->video_path) : null,
+            ];
+        });
+
+        $data = [
+            'page' => $page,
+            'limit' => $limit,
+            'last_page' => $last_page,
+            'total' => $total,
+            'list' => $list
+        ];
+        return $this->toJson($data);
 
 
     }

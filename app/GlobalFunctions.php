@@ -474,13 +474,13 @@ function operatorName()
         return '脚本批量修改';
     }
 
-    $user = [];//= app(Auth::class)->user(false);
+    $user = Auth::user();
     if (!$user) {
         return '未登录用户';
     }
 
     switch ($user->getTable()) {
-        case 'account_info':
+        case 'user':
             return '用户:' . $user->getUserName();
         case 'editor_info':
             return '员工:' . $user->getUserName();

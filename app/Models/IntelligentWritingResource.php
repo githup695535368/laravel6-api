@@ -22,10 +22,10 @@ class IntelligentWritingResource extends BaseModel
     const IMAGE_SUB_TYPE_原图 = 1;
     const IMAGE_SUB_TYPE_用户素材 = 2;
 
-    const STATUS_待处理 = 1;
-    const STATUS_处理中 = 2;
-    const STATUS_处理完成 = 3;
-    const STATUS_处理失败 = 4;
+    const STATUS_待处理 = "待处理";
+    const STATUS_处理中 = "处理中";
+    const STATUS_处理完成 = "处理完成";
+    const STATUS_处理失败 = "处理失败";
 
 
     protected $table = 'intelligent_writing_resource';
