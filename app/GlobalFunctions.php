@@ -522,3 +522,10 @@ function createUuid()
     $uuid = \Ramsey\Uuid\Uuid::uuid1()->toString();
     return $uuid;
 }
+
+
+function get_url_ext($url, $default)
+{
+    $p = pathinfo($url);//Array ( [dirname] => http://localhost/user [basename] => order.php [extension] => php [filename] => order )
+    return $p['extension'] ?? $default;
+}

@@ -34,6 +34,8 @@ class IntelligentWriting extends BaseModel
     const STATUS_生成成功 = "生成成功";
     const STATUS_生成失败 = "生成失败";
 
+    const IS_DOWNLOADING_是 = 1;
+    const IS_DOWNLOADING_否 = 0;
 
     protected $table = 'intelligent_writing';
 

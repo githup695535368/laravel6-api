@@ -151,6 +151,7 @@ class IntelligentCreationController extends ApiController
      *          }
      *      },
      *      @SWG\Parameter(in="formData", name="type", type="string", required=true, description="资源类型 video|image"),
+     *      @SWG\Parameter(in="formData", name="tag", type="string", required=false, description="video_begin|video_end|video_logo"),
      *      @SWG\Parameter(in="formData", name="resource", type="file", required=true, description="资源文件"),
      *      @SWG\Parameter(in="formData", name="duration", type="integer", required=true, description="当文件为视频时，视频的时长（毫秒）"),
      *      @SWG\Response(
@@ -172,12 +173,14 @@ class IntelligentCreationController extends ApiController
         $this->rule([
             'resource' => 'required|file|max:102400',
             'type' => 'required|in:' . join(',', UserResource::constants('TYPE')),
+            'tag' => 'nullable|in:' . join(',', UserResource::constants('TAG')),
             'duration' => 'required_if:type,' . UserResource::TYPE_视频,
         ]);
 
         $user = $this->user();
 
         $type = $request->type;
+        $tag = $request->tag;
         $duration = $request->duration;
         $resource = $request->file('resource');
         $save_method = "put_file_{$type}_path";
@@ -190,6 +193,7 @@ class IntelligentCreationController extends ApiController
         $user_resource->user_id = $user->id;
         $user_resource->file_path = $filePath;
         $user_resource->type = $type;
+        $tag && $user_resource->tag = $tag;
 
 
         if (file_exists($realFilePath = \Storage::path($filePath))) {
@@ -223,6 +227,7 @@ class IntelligentCreationController extends ApiController
      *          }
      *      },
      *      @SWG\Parameter(in="query",name="type",description="资源类型 image|video",required=false,type="string",),
+     *      @SWG\Parameter(in="query",name="tag",description="特殊类型筛选 video_begin|video_end|video_logo",required=false,type="string",),
      *      @SWG\Parameter(in="query",name="page",description="当前页码",required=false,type="integer",),
      *      @SWG\Parameter(in="query",name="limit",description="每页数据量"  ,required=false,type="integer",),
      *      @SWG\Response(
@@ -257,15 +262,22 @@ class IntelligentCreationController extends ApiController
 
         $this->rule([
             'type' => 'nullable|in:' . join(',', UserResource::constants('TYPE')),
+            'tag' => 'nullable|in:' . join(',', UserResource::constants('TAG')),
         ]);
         $user = $this->user();
         $page = $this->query('page') ?? 1;
         $limit = $this->query('limit') ?? 20;
         $type = $this->query('type');
+        $tag = $this->query('tag');
 
         $userResourceQuery = UserResource::whereUserId($user->id)->latest('id')
             ->when($type, function ($query) use($type) {
                 return $query->whereType($type);
+            })
+            ->when($tag, function ($query) use ($tag) {
+                return $query->whereTag($tag);
+            }, function ($query){
+                return $query->whereNull('tag');
             });
 
 
