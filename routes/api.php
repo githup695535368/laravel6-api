@@ -30,7 +30,7 @@ Route::prefix('v1')->namespace('Api\V1')->name('api.v1.')->group(function () {
         // 当前登录用户信息
         Route::get('user', 'TestController@me');
         Route::post('intelligent-creation/upload-user-resource', 'IntelligentCreationController@uploadUserResource');
-        Route::delete('intelligent-creation/upload-user-resource', 'IntelligentCreationController@deleteUserResource');
+        Route::delete('intelligent-creation/delete-user-resource', 'IntelligentCreationController@deleteUserResource');
         Route::post('intelligent-creation/upload-bg-music', 'IntelligentCreationController@uploadBgMusic');
         Route::get('intelligent-creation/user-resource-list', 'IntelligentCreationController@userResourceList');
         Route::get('intelligent-creation/list-of-options', 'IntelligentCreationController@listOfOptions');
