@@ -305,6 +305,59 @@ class IntelligentCreationController extends ApiController
 
     }
 
+    /**
+     * @SWG\Delete(
+     *     path="/intelligent-creation/user-resource",
+     *     tags={"智能创作"},
+     *     summary="删除用户本地资源",
+     *      security={
+     *          {
+     *              "Bearer":{}
+     *          }
+     *      },
+     *     @SWG\Parameter(
+     *          in="body",
+     *          name="data",
+     *          description="",
+     *          required=true,
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="id",description="用户素材id",type="string"),
+     *          )
+     *      ),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="",
+     *          @SWG\Schema(
+     *              type="object",
+     *              @SWG\Property(property="code", type="string",description="状态码"),
+     *              @SWG\Property(property="msg", type="string",description="提示信息"),
+     *          )
+     *      ),
+     * )
+     */
+    public function deleteUserResource()
+    {
+        $this->rule([
+            'id' => 'required',
+        ]);
+
+        $user = $this->user();
+        $id = $this->data('id');
+        $query = UserResource::whereUserId($user->id);
+        if (!($userResource = $query->whereId($id)->first())) {
+            return $this->toError(OutputMsg::PARAMS_ERROR);
+        }
+        $file_path = $userResource->file_path;
+        $cover_path = $userResource->cover_pic;
+        $userResource->delete();
+
+        @unlink(\Storage::path($file_path));
+        $cover_path && @unlink(\Storage::path($cover_path));
+
+        return $this->successMessage("删除成功");
+    }
+
 
     /**
      * @SWG\Post(
