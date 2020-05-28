@@ -74,8 +74,9 @@ class ResourceDetail extends CommonData
             if ($track['sub_type'] == IntelligentWritingResource::IMAGE_SUB_TYPE_原图) {
                 $resource_detail = [
                     'image_url' => $track['resource_detail']['image_url'],
+                    'file_path' => null,
                 ];
-                $status = IntelligentWritingResource::STATUS_处理完成;
+                $status = IntelligentWritingResource::STATUS_待处理;
             } elseif ($track['sub_type'] == IntelligentWritingResource::IMAGE_SUB_TYPE_用户素材) {
                 $resource_detail = [
                     'user_resource_id' => $track['resource_detail']['user_resource_id'],

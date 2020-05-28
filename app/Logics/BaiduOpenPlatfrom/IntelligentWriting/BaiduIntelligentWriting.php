@@ -77,11 +77,12 @@ class BaiduIntelligentWriting extends BaiduOpenPlatfrom
 
         $tracks = $intelligent->resources()->whereIn('resource_type', ['video', 'image'])->orderBy('start_time')->get()
             ->map(function ($resource) {
-                if ($resource->resource_type == IntelligentWritingResource::RESOURCE_TYPE_图片 && $resource->sub_type == IntelligentWritingResource::IMAGE_SUB_TYPE_原图) {
+                /*if ($resource->resource_type == IntelligentWritingResource::RESOURCE_TYPE_图片 && $resource->sub_type == IntelligentWritingResource::IMAGE_SUB_TYPE_原图) {
                     $media_path = $resource->resource_detail['image_url'];
                 } else {
                     $media_path = \Storage::url($resource->resource_detail['file_path']);
-                }
+                }*/
+                $media_path = \Storage::url($resource->resource_detail['file_path']);
 
                 return [
                     'media_path' => $media_path,

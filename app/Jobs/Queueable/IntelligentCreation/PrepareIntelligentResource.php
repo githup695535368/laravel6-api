@@ -61,9 +61,13 @@ class PrepareIntelligentResource extends QueueJob
                         $resource->save();
                     }
                 }
-                /*elseif($resource->resource_type == IntelligentWritingResource::RESOURCE_TYPE_图片){
-
-                }*/
+                elseif($resource->resource_type == IntelligentWritingResource::RESOURCE_TYPE_图片){
+                    if($resource->sub_type == IntelligentWritingResource::IMAGE_SUB_TYPE_原图){
+                        $resource->status = IntelligentWritingResource::STATUS_处理中;
+                        $resource->save();
+                        dispatch(new DownLoadIntelligentResourceOriginImage($resource->id));
+                    }
+                }
             });
             $intelligent->status = IntelligentWriting::STATUS_生成中;
             $intelligent->stage = IntelligentWriting::STAGE_预处理;

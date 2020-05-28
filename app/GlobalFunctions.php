@@ -354,6 +354,7 @@ function storage_put_image(\Intervention\Image\Image $image, $ext = 'jpg', $type
     if (\Storage::put($put_image_path, $image->stream($ext))) {
         return $put_image_path;
     }
+    return null;
 }
 
 
