@@ -64,6 +64,7 @@ class DownLoadIntelligentFinishedVideo extends QueueJob
         $intelligent->stage = IntelligentWriting::STAGE_已合成;
         $intelligent->status = IntelligentWriting::STATUS_生成成功;
         $intelligent->is_downloading = IntelligentWriting::IS_DOWNLOADING_否;
+        $intelligent->finished_at = carbon();
         $intelligent->save();
     }
 
