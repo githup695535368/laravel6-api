@@ -51,7 +51,7 @@ class DownLoadIntelligentFinishedVideo extends QueueJob
         $intelligent->save();
 
         $video_path = put_file_video_path('intelligent_writing') . '/' . Str::random('40') . ".mp4";
-        $image_path = put_file_image_path('intelligent_writing') . '/' . Str::random('40') . get_url_ext($this->cover_pic_url, 'jpg');
+        $image_path = put_file_image_path('intelligent_writing') . '/' . Str::random('40') . "." . get_url_ext($this->cover_pic_url, 'jpg');
         $video_content = file_get_contents($this->video_url);
         $video_is_success = \Storage::put($video_path, $video_content);
         $video_is_success && $intelligent->video_path = $video_path;
