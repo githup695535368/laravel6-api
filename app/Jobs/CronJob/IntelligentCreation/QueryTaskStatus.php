@@ -27,17 +27,20 @@ class QueryTaskStatus extends CronJob
     private function queryTaskStatus()
     {
         $BDIntelligent = new BaiduIntelligentWriting();
-        IntelligentWriting::whereStage(IntelligentWriting::STAGE_合成中)->whereNotNull('job_id')->get()
+        IntelligentWriting::whereStage(IntelligentWriting::STAGE_合成中)
+            ->whereNotNull('job_id')
+            ->where('is_downloading', IntelligentWriting::IS_DOWNLOADING_否)
+            ->get()
             ->each(function ($intelligent) use ($BDIntelligent) {
                 $response = $BDIntelligent->query_vidpress($intelligent->job_id);
                 if ($response) {
                     if ($response['error_code'] == 0) {
-                        $job_detail = $response[$intelligent->job_id];
+                        $job_detail = $response['result'][$intelligent->job_id];
                         $status = $job_detail['status'];
                         if ($status == 4) {
                             $video_url = $job_detail['video_addr'];
                             $cover_pic_url = $job_detail['video_cover_addr'];
-                            $duration= $job_detail['video_duration'];
+                            $duration = $job_detail['video_duration'];
                             $intelligent->duration = $duration;
                             $intelligent->save();
                             dispatch(new DownLoadIntelligentFinishedVideo($intelligent->id, $video_url, $cover_pic_url));
